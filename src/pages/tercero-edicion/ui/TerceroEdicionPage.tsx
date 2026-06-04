@@ -203,6 +203,14 @@ export function TerceroEdicionPage() {
                     setActivo(false);
                     setEstadoSnack(`"${nombre}" inactivado`);
                   }}
+                  onContactoActivado={(updatedContactos) => {
+                    if (!activo) {
+                      const tieneContactoActivo = updatedContactos.some((c) => c.activo);
+                      if (tieneContactoActivo && direcciones.length > 0) {
+                        handleActivar();
+                      }
+                    }
+                  }}
                   onDirtyChange={setIsDirty}
                 />
                 <DireccionesCard

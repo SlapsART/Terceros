@@ -46,6 +46,7 @@ interface ContactosCardProps {
   skeletonCount?: number;
   disableAutoForm?: boolean;
   ocrAddedIds?: string[];
+  onContactoActivado?: (updatedContactos: Contacto[]) => void;
 }
 
 interface ContactoForm {
@@ -83,7 +84,7 @@ const OCR_ROW_SX = {
   },
 } as const;
 
-export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInactivar, onDirtyChange, mode = 'edit', skeletonCount = 0, disableAutoForm = false, ocrAddedIds = [] }: ContactosCardProps) {
+export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInactivar, onDirtyChange, mode = 'edit', skeletonCount = 0, disableAutoForm = false, ocrAddedIds = [], onContactoActivado }: ContactosCardProps) {
   const [form, setForm] = useState<ContactoForm | null>(
     !disableAutoForm && contactos.length === 0 ? EMPTY_FORM : null
   );
@@ -164,7 +165,9 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
       });
       setNuevoPrincipalId(otros.length > 0 ? otros[0].id : '');
     } else {
-      onContactosChange(contactos.map((c) => (c.id === contacto.id ? { ...c, activo: true } : c)));
+      const updated = contactos.map((c) => (c.id === contacto.id ? { ...c, activo: true } : c));
+      onContactosChange(updated);
+      onContactoActivado?.(updated);
     }
   };
 

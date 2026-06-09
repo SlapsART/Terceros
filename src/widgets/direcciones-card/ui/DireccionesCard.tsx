@@ -25,6 +25,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import ToggleButton from '@mui/material/ToggleButton';
 import { IconMapPin, IconPlus, IconPencil, IconTrash, IconX } from '@tabler/icons-react';
 import type { Direccion, DireccionTipo, AddressExtra } from '@/shared/types/tercero';
+import { fadeIn } from '@/shared/ui/animations';
 
 const TIPOS_DIRECCION: DireccionTipo[] = ['Fiscal', 'Comercial', 'Correspondencia', 'Otro'];
 const PAISES = ['Colombia', 'Perú', 'México', 'Argentina'];
@@ -42,6 +43,7 @@ interface DireccionesCardProps {
   skeletonCount?: number;
   disableAutoForm?: boolean;
   ocrAddedIds?: string[];
+  editOcrItems?: boolean;
 }
 
 interface DireccionForm {
@@ -87,6 +89,7 @@ interface ExtrasMenuState {
   anchor: HTMLElement;
   target: 'num1' | 'num2';
   afterExtraId?: string;
+  itemId?: string; // set when menu belongs to an OCR item form
 }
 
 const hoverPlusGroup = {
@@ -104,7 +107,31 @@ const OCR_ROW_SX = {
   },
 } as const;
 
-export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChange, mode = 'edit', skeletonCount = 0, disableAutoForm = false, ocrAddedIds = [] }: DireccionesCardProps) {
+const TOGGLE_CHIP_SX = {
+  borderRadius: '4px !important',
+  border: '0.75px solid !important',
+  borderColor: 'grey.200 !important',
+  height: 32,
+  minHeight: 32,
+  px: 1.5,
+  '&.Mui-selected': {
+    color: 'primary.main',
+    borderColor: 'rgba(83,35,222,0.5) !important',
+    backgroundColor: '#ffffff !important',
+    '&:hover': { backgroundColor: '#ffffff !important' },
+  },
+} as const;
+
+export function DireccionesCard({
+  direcciones,
+  onDireccionesChange,
+  onDirtyChange,
+  mode = 'edit',
+  skeletonCount = 0,
+  disableAutoForm = false,
+  ocrAddedIds = [],
+  editOcrItems = false,
+}: DireccionesCardProps) {
   const [form, setForm] = useState<DireccionForm | null>(
     !disableAutoForm && direcciones.length === 0 ? EMPTY_FORM : null
   );
@@ -115,12 +142,83 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
   const [nuevaPreferidaId, setNuevaPreferidaId] = useState('');
   const [extrasMenu, setExtrasMenu] = useState<ExtrasMenuState | null>(null);
 
+  // Multi-edit state for OCR items
+  const [ocrEditForms, setOcrEditForms] = useState<Record<string, DireccionForm>>({});
+
   const isFormOpen = form !== null;
   const editingId = isFormOpen && formMode.kind === 'edit' ? formMode.id : null;
 
   useEffect(() => {
     onDirtyChange?.(isFormOpen);
   }, [isFormOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initialize edit forms for all OCR items when OCR finishes
+  useEffect(() => {
+    if (!editOcrItems || ocrAddedIds.length === 0) return;
+    const init: Record<string, DireccionForm> = {};
+    for (const d of direcciones) {
+      if (ocrAddedIds.includes(d.id)) {
+        init[d.id] = {
+          tipo: d.tipo,
+          pais: d.pais,
+          departamento: d.departamento ?? '',
+          ciudad: d.ciudad ?? '',
+          via: d.viaPrincipal,
+          num1: d.num1,
+          num1Extras: d.num1Extras ?? [],
+          num2: d.num2,
+          num2Extras: d.num2Extras ?? [],
+          num3: d.num3,
+          complemento: d.complemento ?? '',
+          showComplemento: !!d.complemento,
+        };
+      }
+    }
+    setOcrEditForms(init);
+  }, [editOcrItems]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const updateOcrForm = (id: string, updater: (f: DireccionForm) => DireccionForm) => {
+    setOcrEditForms((prev) => ({ ...prev, [id]: updater(prev[id]) }));
+  };
+
+  const handleOcrConfirm = (id: string) => {
+    const f = ocrEditForms[id];
+    if (!f) return;
+    onDireccionesChange(
+      direcciones.map((d) =>
+        d.id === id
+          ? {
+              ...d,
+              tipo: f.tipo,
+              pais: f.pais,
+              departamento: f.departamento,
+              ciudad: f.ciudad,
+              viaPrincipal: f.via,
+              num1: f.num1,
+              num1Extras: f.num1Extras.length > 0 ? f.num1Extras : undefined,
+              num2: f.num2,
+              num2Extras: f.num2Extras.length > 0 ? f.num2Extras : undefined,
+              num3: f.num3,
+              complemento: f.complemento || undefined,
+            }
+          : d
+      )
+    );
+    setOcrEditForms((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const handleOcrCancel = (id: string) => {
+    onDireccionesChange(direcciones.filter((d) => d.id !== id));
+    setOcrEditForms((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
 
   const openNew = () => {
     setFormMode({ kind: 'new' });
@@ -206,42 +304,73 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
   const handleExtrasMenuOpen = (
     e: React.MouseEvent<HTMLElement>,
     target: 'num1' | 'num2',
-    afterExtraId?: string
+    afterExtraId?: string,
+    itemId?: string,
   ) => {
-    setExtrasMenu({ anchor: e.currentTarget, target, afterExtraId });
+    setExtrasMenu({ anchor: e.currentTarget, target, afterExtraId, itemId });
   };
 
   const handleExtrasMenuClose = () => setExtrasMenu(null);
 
   const handleAddExtra = (type: 'letra' | 'sector') => {
-    if (!extrasMenu || !form) return;
-    const { target, afterExtraId } = extrasMenu;
+    if (!extrasMenu) return;
+    const { target, afterExtraId, itemId } = extrasMenu;
     const key = target === 'num1' ? 'num1Extras' : 'num2Extras';
-    const current = form[key];
     const newExtra: AddressExtra = { id: Date.now().toString(), type, value: '' };
-    let updated: AddressExtra[];
-    if (afterExtraId) {
-      const idx = current.findIndex((e) => e.id === afterExtraId);
-      updated = [...current.slice(0, idx + 1), newExtra, ...current.slice(idx + 1)];
-    } else {
-      updated = [...current, newExtra];
+
+    if (itemId) {
+      // OCR form item
+      updateOcrForm(itemId, (f) => {
+        const current = f[key] as AddressExtra[];
+        let updated: AddressExtra[];
+        if (afterExtraId) {
+          const idx = current.findIndex((e) => e.id === afterExtraId);
+          updated = [...current.slice(0, idx + 1), newExtra, ...current.slice(idx + 1)];
+        } else {
+          updated = [...current, newExtra];
+        }
+        return { ...f, [key]: updated };
+      });
+    } else if (form) {
+      const current = form[key] as AddressExtra[];
+      let updated: AddressExtra[];
+      if (afterExtraId) {
+        const idx = current.findIndex((e) => e.id === afterExtraId);
+        updated = [...current.slice(0, idx + 1), newExtra, ...current.slice(idx + 1)];
+      } else {
+        updated = [...current, newExtra];
+      }
+      setForm((f) => (f ? { ...f, [key]: updated } : f));
     }
-    setForm((f) => (f ? { ...f, [key]: updated } : f));
     handleExtrasMenuClose();
   };
 
-  const handleRemoveExtra = (target: 'num1' | 'num2', id: string) => {
+  const handleRemoveExtra = (target: 'num1' | 'num2', id: string, itemId?: string) => {
     const key = target === 'num1' ? 'num1Extras' : 'num2Extras';
-    setForm((f) =>
-      f ? { ...f, [key]: (f[key] as AddressExtra[]).filter((e) => e.id !== id) } : f
-    );
+    if (itemId) {
+      updateOcrForm(itemId, (f) => ({
+        ...f,
+        [key]: (f[key] as AddressExtra[]).filter((e) => e.id !== id),
+      }));
+    } else {
+      setForm((f) =>
+        f ? { ...f, [key]: (f[key] as AddressExtra[]).filter((e) => e.id !== id) } : f
+      );
+    }
   };
 
-  const handleExtraChange = (target: 'num1' | 'num2', id: string, value: string) => {
+  const handleExtraChange = (target: 'num1' | 'num2', id: string, value: string, itemId?: string) => {
     const key = target === 'num1' ? 'num1Extras' : 'num2Extras';
-    setForm((f) =>
-      f ? { ...f, [key]: (f[key] as AddressExtra[]).map((e) => (e.id === id ? { ...e, value } : e)) } : f
-    );
+    if (itemId) {
+      updateOcrForm(itemId, (f) => ({
+        ...f,
+        [key]: (f[key] as AddressExtra[]).map((e) => (e.id === id ? { ...e, value } : e)),
+      }));
+    } else {
+      setForm((f) =>
+        f ? { ...f, [key]: (f[key] as AddressExtra[]).map((e) => (e.id === id ? { ...e, value } : e)) } : f
+      );
+    }
   };
 
   const formatAddress = (dir: Direccion) => {
@@ -250,126 +379,97 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
     return `${dir.viaPrincipal} #${num1Part}-${num2Part}${dir.complemento ? ` ${dir.complemento}` : ''}`;
   };
 
-  const renderForm = (
-    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-      {formMode.kind === 'new' && direcciones.length > 0 && (
-        <Typography variant="subtitle2">Nueva dirección</Typography>
-      )}
-
+  const renderAddressFields = (
+    f: DireccionForm,
+    onChange: (updater: (prev: DireccionForm) => DireccionForm) => void,
+    itemId?: string,
+  ) => (
+    <>
       <Box>
         <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
           Tipo de dirección <Box component="span" sx={{ color: 'error.main' }}>*</Box>
         </Typography>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-        {TIPOS_DIRECCION.map((tipo) => (
-          <ToggleButton
-            key={tipo}
-            value={tipo}
-            selected={form?.tipo === tipo}
-            onChange={() => setForm((f) => (f ? { ...f, tipo } : f))}
-            size="small"
-            sx={{
-              borderRadius: '4px !important',
-              border: '0.75px solid !important',
-              borderColor: 'grey.200 !important',
-              height: 32,
-              minHeight: 32,
-              px: 1.5,
-              '&.Mui-selected': {
-                color: 'primary.main',
-                borderColor: 'rgba(83,35,222,0.5) !important',
-                backgroundColor: '#ffffff !important',
-                '&:hover': { backgroundColor: '#ffffff !important' },
-              },
-            }}
-          >
-            <Typography variant="caption">{tipo}</Typography>
-          </ToggleButton>
-        ))}
+          {TIPOS_DIRECCION.map((tipo) => (
+            <ToggleButton
+              key={tipo}
+              value={tipo}
+              selected={f.tipo === tipo}
+              onChange={() => onChange((ff) => ({ ...ff, tipo }))}
+              size="small"
+              sx={TOGGLE_CHIP_SX}
+            >
+              <Typography variant="caption">{tipo}</Typography>
+            </ToggleButton>
+          ))}
         </Box>
       </Box>
 
       <Box sx={{ display: 'flex', gap: 1 }}>
         <FormControl sx={{ flex: 1 }} size="small" required>
           <InputLabel>País</InputLabel>
-          <Select value={form?.pais ?? ''} label="País" onChange={(e) => setForm((f) => (f ? { ...f, pais: e.target.value } : f))}>
+          <Select value={f.pais} label="País" onChange={(e) => onChange((ff) => ({ ...ff, pais: e.target.value }))}>
             {PAISES.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
           </Select>
         </FormControl>
         <FormControl sx={{ flex: 1 }} size="small">
           <InputLabel>Departamento</InputLabel>
-          <Select value={form?.departamento ?? ''} label="Departamento" onChange={(e) => setForm((f) => (f ? { ...f, departamento: e.target.value } : f))}>
+          <Select value={f.departamento} label="Departamento" onChange={(e) => onChange((ff) => ({ ...ff, departamento: e.target.value }))}>
             {DEPARTAMENTOS.map((d) => <MenuItem key={d} value={d}>{d}</MenuItem>)}
           </Select>
         </FormControl>
         <FormControl sx={{ flex: 1 }} size="small">
           <InputLabel>Ciudad</InputLabel>
-          <Select value={form?.ciudad ?? ''} label="Ciudad" onChange={(e) => setForm((f) => (f ? { ...f, ciudad: e.target.value } : f))}>
+          <Select value={f.ciudad} label="Ciudad" onChange={(e) => onChange((ff) => ({ ...ff, ciudad: e.target.value }))}>
             {CIUDADES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
           </Select>
         </FormControl>
       </Box>
 
-      {/* Fila única de dirección — sin salto de línea forzado */}
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
         <FormControl sx={{ flex: '1 1 110px', minWidth: 110 }} size="small" required>
           <InputLabel>Vía principal</InputLabel>
-          <Select value={form?.via ?? ''} label="Vía principal" onChange={(e) => setForm((f) => (f ? { ...f, via: e.target.value } : f))}>
+          <Select value={f.via} label="Vía principal" onChange={(e) => onChange((ff) => ({ ...ff, via: e.target.value }))}>
             {VIAS.map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
           </Select>
         </FormControl>
 
-        {/* Num1 */}
         <Box sx={hoverPlusGroup}>
           <TextField
             label="Num."
             required
             size="small"
             sx={{ width: 72 }}
-            value={form?.num1 ?? ''}
-            onChange={(e) => setForm((f) => (f ? { ...f, num1: e.target.value } : f))}
+            value={f.num1}
+            onChange={(e) => onChange((ff) => ({ ...ff, num1: e.target.value }))}
           />
           <IconButton
             className="plus-btn"
             size="small"
-            onClick={(e) => handleExtrasMenuOpen(e, 'num1')}
+            onClick={(e) => handleExtrasMenuOpen(e, 'num1', undefined, itemId)}
             sx={{ color: 'text.secondary', p: '2px' }}
           >
             <IconPlus size={14} />
           </IconButton>
         </Box>
 
-        {/* Extras de Num1 inline */}
-        {form?.num1Extras.map((extra) => (
+        {f.num1Extras.map((extra) => (
           <Box
             key={extra.id}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              '& .extra-btn': { display: 'none' },
-              '&:hover .extra-btn': { display: 'inline-flex' },
-            }}
+            sx={{ display: 'flex', alignItems: 'center', '& .extra-btn': { display: 'none' }, '&:hover .extra-btn': { display: 'inline-flex' } }}
           >
             <Box sx={{ position: 'relative', display: 'inline-flex' }}>
               {extra.type === 'letra' ? (
                 <FormControl size="small" sx={{ width: 80 }}>
                   <InputLabel>Letra</InputLabel>
-                  <Select
-                    value={extra.value}
-                    label="Letra"
-                    onChange={(e) => handleExtraChange('num1', extra.id, e.target.value)}
-                  >
+                  <Select value={extra.value} label="Letra" onChange={(e) => handleExtraChange('num1', extra.id, e.target.value, itemId)}>
                     {LETRAS.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
                   </Select>
                 </FormControl>
               ) : (
                 <FormControl size="small" sx={{ minWidth: 120 }}>
                   <InputLabel>Sector</InputLabel>
-                  <Select
-                    value={extra.value}
-                    label="Sector"
-                    onChange={(e) => handleExtraChange('num1', extra.id, e.target.value)}
-                  >
+                  <Select value={extra.value} label="Sector" onChange={(e) => handleExtraChange('num1', extra.id, e.target.value, itemId)}>
                     {SECTORES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
                   </Select>
                 </FormControl>
@@ -377,7 +477,7 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
               <IconButton
                 className="extra-btn"
                 size="small"
-                onClick={() => handleRemoveExtra('num1', extra.id)}
+                onClick={() => handleRemoveExtra('num1', extra.id, itemId)}
                 sx={{ position: 'absolute', top: '50%', right: 32, transform: 'translateY(-50%)', p: 0, width: 16, height: 16, color: 'text.secondary', zIndex: 1 }}
               >
                 <IconX size={12} />
@@ -386,7 +486,7 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
             <IconButton
               className="extra-btn"
               size="small"
-              onClick={(e) => handleExtrasMenuOpen(e, 'num1', extra.id)}
+              onClick={(e) => handleExtrasMenuOpen(e, 'num1', extra.id, itemId)}
               sx={{ color: 'text.secondary', p: '2px' }}
             >
               <IconPlus size={14} />
@@ -396,57 +496,42 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
 
         <Typography variant="body2" color="text.secondary">#</Typography>
 
-        {/* Num2 */}
         <Box sx={hoverPlusGroup}>
           <TextField
             label="Num."
             required
             size="small"
             sx={{ width: 72 }}
-            value={form?.num2 ?? ''}
-            onChange={(e) => setForm((f) => (f ? { ...f, num2: e.target.value } : f))}
+            value={f.num2}
+            onChange={(e) => onChange((ff) => ({ ...ff, num2: e.target.value }))}
           />
           <IconButton
             className="plus-btn"
             size="small"
-            onClick={(e) => handleExtrasMenuOpen(e, 'num2')}
+            onClick={(e) => handleExtrasMenuOpen(e, 'num2', undefined, itemId)}
             sx={{ color: 'text.secondary', p: '2px' }}
           >
             <IconPlus size={14} />
           </IconButton>
         </Box>
 
-        {/* Extras de Num2 inline */}
-        {form?.num2Extras.map((extra) => (
+        {f.num2Extras.map((extra) => (
           <Box
             key={extra.id}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              '& .extra-btn': { display: 'none' },
-              '&:hover .extra-btn': { display: 'inline-flex' },
-            }}
+            sx={{ display: 'flex', alignItems: 'center', '& .extra-btn': { display: 'none' }, '&:hover .extra-btn': { display: 'inline-flex' } }}
           >
             <Box sx={{ position: 'relative', display: 'inline-flex' }}>
               {extra.type === 'letra' ? (
                 <FormControl size="small" sx={{ width: 80 }}>
                   <InputLabel>Letra</InputLabel>
-                  <Select
-                    value={extra.value}
-                    label="Letra"
-                    onChange={(e) => handleExtraChange('num2', extra.id, e.target.value)}
-                  >
+                  <Select value={extra.value} label="Letra" onChange={(e) => handleExtraChange('num2', extra.id, e.target.value, itemId)}>
                     {LETRAS.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
                   </Select>
                 </FormControl>
               ) : (
                 <FormControl size="small" sx={{ minWidth: 120 }}>
                   <InputLabel>Sector</InputLabel>
-                  <Select
-                    value={extra.value}
-                    label="Sector"
-                    onChange={(e) => handleExtraChange('num2', extra.id, e.target.value)}
-                  >
+                  <Select value={extra.value} label="Sector" onChange={(e) => handleExtraChange('num2', extra.id, e.target.value, itemId)}>
                     {SECTORES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
                   </Select>
                 </FormControl>
@@ -454,7 +539,7 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
               <IconButton
                 className="extra-btn"
                 size="small"
-                onClick={() => handleRemoveExtra('num2', extra.id)}
+                onClick={() => handleRemoveExtra('num2', extra.id, itemId)}
                 sx={{ position: 'absolute', top: '50%', right: 32, transform: 'translateY(-50%)', p: 0, width: 16, height: 16, color: 'text.secondary', zIndex: 1 }}
               >
                 <IconX size={12} />
@@ -463,7 +548,7 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
             <IconButton
               className="extra-btn"
               size="small"
-              onClick={(e) => handleExtrasMenuOpen(e, 'num2', extra.id)}
+              onClick={(e) => handleExtrasMenuOpen(e, 'num2', extra.id, itemId)}
               sx={{ color: 'text.secondary', p: '2px' }}
             >
               <IconPlus size={14} />
@@ -473,47 +558,30 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
 
         <Typography variant="body2" color="text.secondary">-</Typography>
 
-        {/* Num3 — sin extras */}
         <TextField
           label="Num."
           required
           size="small"
           sx={{ width: 72 }}
-          value={form?.num3 ?? ''}
-          onChange={(e) => setForm((f) => (f ? { ...f, num3: e.target.value } : f))}
+          value={f.num3}
+          onChange={(e) => onChange((ff) => ({ ...ff, num3: e.target.value }))}
         />
       </Box>
 
-      {/* Menú para agregar extras */}
-      <Menu
-        anchorEl={extrasMenu?.anchor}
-        open={Boolean(extrasMenu)}
-        onClose={handleExtrasMenuClose}
-        slotProps={{ paper: { sx: { borderRadius: 1, minWidth: 180 } } }}
-      >
-        <MenuItem onClick={() => handleAddExtra('letra')}>
-          <Typography variant="body2">Letra (A, B, C, D...)</Typography>
-        </MenuItem>
-        <MenuItem onClick={() => handleAddExtra('sector')}>
-          <Typography variant="body2">Sector (Sur, Norte...)</Typography>
-        </MenuItem>
-      </Menu>
-
-      {/* Complemento */}
-      {form?.showComplemento ? (
+      {f.showComplemento ? (
         <TextField
           label="Complemento"
           fullWidth
           size="small"
-          value={form.complemento}
-          onChange={(e) => setForm((f) => (f ? { ...f, complemento: e.target.value } : f))}
+          value={f.complemento}
+          onChange={(e) => onChange((ff) => ({ ...ff, complemento: e.target.value }))}
           InputProps={{
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
                   size="small"
                   edge="end"
-                  onClick={() => setForm((f) => f ? { ...f, showComplemento: false, complemento: '' } : f)}
+                  onClick={() => onChange((ff) => ({ ...ff, showComplemento: false, complemento: '' }))}
                 >
                   <IconX size={14} />
                 </IconButton>
@@ -525,13 +593,21 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
         <Button
           size="small"
           startIcon={<IconPlus size={14} />}
-          onClick={() => setForm((f) => (f ? { ...f, showComplemento: true } : f))}
+          onClick={() => onChange((ff) => ({ ...ff, showComplemento: true }))}
           sx={{ color: 'text.secondary', alignSelf: 'flex-start' }}
         >
           Agregar complemento
         </Button>
       )}
+    </>
+  );
 
+  const renderForm = (
+    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, ...fadeIn }}>
+      {formMode.kind === 'new' && direcciones.length > 0 && (
+        <Typography variant="subtitle2">Nueva dirección</Typography>
+      )}
+      {form && renderAddressFields(form, (updater) => setForm((f) => f ? updater(f) : f))}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
         <Button variant="text" size="small" onClick={handleCancelar}>
           Cancelar
@@ -543,12 +619,34 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
     </Box>
   );
 
+  const renderOcrItemForm = (id: string) => {
+    const f = ocrEditForms[id];
+    if (!f) return null;
+    return (
+      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, ...fadeIn }}>
+        {renderAddressFields(
+          f,
+          (updater) => updateOcrForm(id, updater),
+          id,
+        )}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Button variant="text" size="small" onClick={() => handleOcrCancel(id)}>
+            Cancelar
+          </Button>
+          <Button variant="outlined" size="small" onClick={() => handleOcrConfirm(id)}>
+            Agregar
+          </Button>
+        </Box>
+      </Box>
+    );
+  };
+
   return (
     <>
       <Paper
         elevation={0}
         sx={{
-          border: '1px solid',
+          border: isFormOpen && mode === 'edit' ? '2px solid' : '1px solid',
           borderColor: isFormOpen && mode === 'edit' ? 'primary.main' : 'divider',
           borderRadius: 2,
           overflow: 'hidden',
@@ -558,9 +656,7 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
           gap: 3,
         }}
       >
-        {/* Inner wrapper: header + grey box con gap 12px */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-          {/* Header */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: 32 }}>
             <Box sx={{ color: 'text.secondary', display: 'flex' }}>
               <IconMapPin size={18} />
@@ -570,11 +666,13 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
             </Typography>
           </Box>
 
-          {/* grey.50 — borderRadius 4px (var(--0,5)) — DENTRO del padding blanco */}
-          <Box sx={{ bgcolor: 'grey.50', borderRadius: 1, overflow: 'hidden' }}>
+          <Box sx={{ bgcolor: 'grey.100', borderRadius: 1, overflow: 'hidden' }}>
             {direcciones.map((dir) => {
               if (editingId === dir.id) {
                 return <Box key={dir.id}>{renderForm}</Box>;
+              }
+              if (editOcrItems && ocrEditForms[dir.id]) {
+                return <Box key={dir.id}>{renderOcrItemForm(dir.id)}</Box>;
               }
               const isOcrRow = ocrAddedIds.includes(dir.id);
               return (
@@ -604,7 +702,7 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
                   </Box>
                   <Box sx={{ display: 'flex', gap: 0.5, flexShrink: 0 }}>
                     <IconButton size="small" sx={{ color: 'primary.main' }} onClick={() => openEdit(dir)}>
-                      <IconPencil size={14} />
+                      <IconPencil size={16} />
                     </IconButton>
                     <IconButton size="small" onClick={() => handleEliminar(dir)} sx={{ color: 'text.secondary' }}>
                       <IconTrash size={14} />
@@ -614,7 +712,6 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
               );
             })}
 
-            {/* Skeleton rows — OCR loading */}
             {skeletonCount > 0 && Array.from({ length: skeletonCount }).map((_, i) => (
               <Box key={`skeleton-d-${i}`} sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <Box sx={{ flex: 1 }}>
@@ -632,7 +729,6 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
           </Box>
         </Box>
 
-        {/* Agregar dirección — fuera del inner wrapper, siempre visible */}
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <Button
             size="small"
@@ -647,6 +743,21 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
           </Button>
         </Box>
       </Paper>
+
+      {/* Shared extras menu */}
+      <Menu
+        anchorEl={extrasMenu?.anchor}
+        open={Boolean(extrasMenu)}
+        onClose={handleExtrasMenuClose}
+        slotProps={{ paper: { sx: { borderRadius: 1, minWidth: 180 } } }}
+      >
+        <MenuItem onClick={() => handleAddExtra('letra')}>
+          <Typography variant="body2">Letra (A, B, C, D...)</Typography>
+        </MenuItem>
+        <MenuItem onClick={() => handleAddExtra('sector')}>
+          <Typography variant="body2">Sector (Sur, Norte...)</Typography>
+        </MenuItem>
+      </Menu>
 
       <Snackbar
         open={savedOpen}
@@ -670,7 +781,6 @@ export function DireccionesCard({ direcciones, onDireccionesChange, onDirtyChang
         </Alert>
       </Snackbar>
 
-      {/* Dialog de confirmación eliminar dirección */}
       <Dialog
         open={Boolean(eliminarDialog)}
         onClose={handleEliminarCancel}

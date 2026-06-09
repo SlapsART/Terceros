@@ -11,29 +11,23 @@ import Box from '@mui/material/Box';
 import Zoom from '@mui/material/Zoom';
 import { IconX } from '@tabler/icons-react';
 
-interface InactivarTerceroDialogProps {
+interface ForzarCreacionDialogProps {
   open: boolean;
-  nombre: string;
   onClose: () => void;
-  onConfirm: (motivo: string) => void;
+  onConfirmar: (justificacion: string) => void;
 }
 
-export function InactivarTerceroDialog({
-  open,
-  nombre,
-  onClose,
-  onConfirm,
-}: InactivarTerceroDialogProps) {
-  const [motivo, setMotivo] = useState('');
-
-  const handleConfirm = () => {
-    onConfirm(motivo);
-    setMotivo('');
-  };
+export function ForzarCreacionDialog({ open, onClose, onConfirmar }: ForzarCreacionDialogProps) {
+  const [justificacion, setJustificacion] = useState('');
 
   const handleClose = () => {
-    setMotivo('');
+    setJustificacion('');
     onClose();
+  };
+
+  const handleConfirmar = () => {
+    onConfirmar(justificacion);
+    setJustificacion('');
   };
 
   return (
@@ -48,7 +42,7 @@ export function InactivarTerceroDialog({
     >
       <DialogTitle sx={{ pr: 6, pb: 1 }}>
         <Typography variant="h6" component="span">
-          Inactivar &ldquo;{nombre}&rdquo;
+          Crear tercero
         </Typography>
         <IconButton
           size="small"
@@ -61,17 +55,17 @@ export function InactivarTerceroDialog({
 
       <DialogContent sx={{ pt: 1 }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Al confirmar, el tercero no se podrá utilizar a futuro, pero, se guardará el registro de
-          los usos anteriores.
+          Vas a registrar un tercero con riesgo de duplicidad, para continuar debes ingresar una
+          justificación.
         </Typography>
         <TextField
-          label="Motivo"
-          size="small"
+          label="Justificación"
+          required
           fullWidth
           multiline
           minRows={2}
-          value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
+          value={justificacion}
+          onChange={(e) => setJustificacion(e.target.value)}
         />
       </DialogContent>
 
@@ -80,7 +74,13 @@ export function InactivarTerceroDialog({
           <Button variant="text" size="small" onClick={handleClose}>
             Cancelar
           </Button>
-          <Button variant="contained" size="small" disableElevation onClick={handleConfirm}>
+          <Button
+            variant="contained"
+            size="small"
+            disableElevation
+            disabled={!justificacion.trim()}
+            onClick={handleConfirmar}
+          >
             Confirmar
           </Button>
         </Box>

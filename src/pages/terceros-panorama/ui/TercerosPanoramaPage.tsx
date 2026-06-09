@@ -5,6 +5,7 @@ import { PageHeader } from '@/widgets/page-header';
 import { TercerosTable } from '@/widgets/terceros-table';
 import { OcrAsistente } from '@/features/ocr-asistente';
 import { MOCK_TERCEROS } from '@/shared/mocks/terceros';
+import { slideUp } from '@/shared/ui/animations';
 
 interface Filters {
   rol: string;
@@ -26,7 +27,7 @@ export function TercerosPanoramaPage() {
         actionLabel="Nuevo tercero"
         onAction={() => navigate('/nuevo')}
       />
-      <Box sx={{ pt: 1, pb: 16 }}>
+      <Box sx={{ pt: 1, pb: 16, ...slideUp }}>
         <TercerosTable
           terceros={MOCK_TERCEROS}
           filters={filters}

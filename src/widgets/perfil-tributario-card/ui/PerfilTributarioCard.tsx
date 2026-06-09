@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
@@ -44,17 +44,10 @@ interface PerfilTributarioCardProps {
   isLoading?: boolean;
   onPerfilChange?: (p: PerfilTributario) => void;
   onDirtyChange?: (dirty: boolean) => void;
+  initialEditing?: boolean;
+  disableEditHighlight?: boolean;
 }
 
-const PAPER_SX = {
-  bgcolor: 'background.paper',
-  borderRadius: 2,
-  boxShadow: '6px 4px 4px 0px rgba(73,71,71,0.03)',
-  p: 2,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 3,
-} as const;
 
 export function PerfilTributarioCard({
   nombreRazonSocial,
@@ -64,9 +57,19 @@ export function PerfilTributarioCard({
   isLoading,
   onPerfilChange,
   onDirtyChange,
+  initialEditing = false,
+  disableEditHighlight = false,
 }: PerfilTributarioCardProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<PerfilTributario | undefined>(perfil);
+
+  useEffect(() => {
+    if (perfil && initialEditing && !editing) {
+      setDraft(perfil);
+      setEditing(true);
+      onDirtyChange?.(true);
+    }
+  }, [perfil]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startEdit = () => {
     if (!perfil) return;
@@ -94,12 +97,12 @@ export function PerfilTributarioCard({
 
   if (isLoading) {
     return (
-      <Paper elevation={0} sx={PAPER_SX}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Skeleton variant="circular" width={18} height={18} animation="wave" />
           <Skeleton variant="text" width={140} height={22} animation="wave" />
         </Box>
-        <Box sx={{ bgcolor: 'grey.50', borderRadius: 1, p: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box sx={{ bgcolor: 'grey.100', borderRadius: 2, overflow: 'hidden', p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Box sx={{ flex: 1 }}>
               <Skeleton variant="text" width="60%" height={16} animation="wave" />
@@ -143,8 +146,14 @@ export function PerfilTributarioCard({
     <Paper
       elevation={0}
       sx={{
-        ...PAPER_SX,
-        boxShadow: editing ? '0 0 0 1px #5323de' : PAPER_SX.boxShadow,
+        border: '1px solid',
+        borderColor: editing && !disableEditHighlight ? 'primary.main' : 'divider',
+        borderRadius: 2,
+        overflow: 'hidden',
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 1.5,
         animation: 'ocrRevealPerfil 0.4s ease-out',
         '@keyframes ocrRevealPerfil': {
           from: { opacity: 0, transform: 'translateY(6px)' },
@@ -152,13 +161,15 @@ export function PerfilTributarioCard({
         },
       }}
     >
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Header — igual a ContactosCard */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 32 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Box sx={{ color: 'text.secondary', display: 'flex' }}>
             <IconFileDollar size={18} />
           </Box>
-          <Typography variant="subtitle2">Perfil tributario</Typography>
+          <Typography variant="subtitle2" sx={{ fontSize: '0.875rem', fontWeight: 500 }}>
+            Perfil tributario
+          </Typography>
         </Box>
         {!editing && (
           <IconButton size="small" onClick={startEdit} sx={{ color: 'primary.main' }}>
@@ -167,181 +178,163 @@ export function PerfilTributarioCard({
         )}
       </Box>
 
-      {/* Grey content box */}
-      <Box
-        sx={{
-          bgcolor: 'grey.50',
-          borderRadius: 1,
-          p: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3,
-        }}
-      >
-        {editing && draft ? (
-          /* ── EDIT MODE ── */
-          <>
-            {/* Row 1: Nombre/Razón social + Documento (read-only) */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Nombre / Razón social
-                </Typography>
-                <Typography variant="body2">{nombreRazonSocial}</Typography>
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Documento
-                </Typography>
-                <Typography variant="body2">
-                  {identificacionTipo}: {nit}
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* Row 2: Tipo de persona + Régimen tributario */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <FormControl size="small" sx={{ flex: 1 }}>
-                <InputLabel>Tipo de persona</InputLabel>
-                <Select
-                  value={draft.tipoPersona}
-                  label="Tipo de persona"
-                  onChange={(e) =>
-                    patchDraft({ tipoPersona: e.target.value as PerfilTributario['tipoPersona'] })
-                  }
-                >
-                  <MenuItem value="Jurídica">Jurídica</MenuItem>
-                  <MenuItem value="Natural">Natural</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ flex: 1 }}>
-                <InputLabel>Régimen tributario</InputLabel>
-                <Select
-                  value={draft.regimenTributario}
-                  label="Régimen tributario"
-                  onChange={(e) => patchDraft({ regimenTributario: e.target.value })}
-                >
-                  {REGIMENES.map((r) => (
-                    <MenuItem key={r} value={r}>
-                      {r}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-
-            {/* Atributos fiscales edit */}
-            <Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Atributos fiscales
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {([...ATRIBUTOS, ...ATRIBUTOS_RIGHT] as [keyof PerfilTributario, string][]).map(
-                  ([key, label]) => (
-                    <Box
-                      key={key}
-                      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                    >
-                      <Typography variant="body2" color="text.secondary">
-                        {label}
-                      </Typography>
-                      <Switch
-                        size="small"
-                        checked={draft[key] as boolean}
-                        onChange={(e) => patchDraft({ [key]: e.target.checked })}
-                      />
-                    </Box>
-                  )
-                )}
-              </Box>
-            </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-              <Button variant="text" size="small" onClick={handleCancel}>
-                Cancelar
-              </Button>
-              <Button variant="outlined" size="small" onClick={handleSave}>
-                Guardar
-              </Button>
-            </Box>
-          </>
-        ) : (
-          /* ── VIEW MODE ── */
-          <>
-            {/* Row 1: Nombre/Razón social + Documento */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <FieldCol icon={<IconUser size={16} />} label="Nombre / Razón social" value={nombreRazonSocial ?? ''} />
-              <FieldCol icon={<IconId size={16} />} label="Documento" value={`${identificacionTipo ?? ''}: ${nit ?? ''}`} />
-            </Box>
-
-            {/* Row 2: Tipo de persona + Régimen tributario */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <FieldCol icon={<IconUser size={16} />} label="Tipo de persona" value={perfil.tipoPersona} />
-              <FieldCol icon={<IconBuildingBank size={16} />} label="Regimen tributario" value={perfil.regimenTributario} />
-            </Box>
-
-            {/* Actividad económica */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-              <Box sx={{ color: 'text.secondary', display: 'flex', pt: '2px', flexShrink: 0 }}>
-                <IconBox size={16} />
-              </Box>
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Actividad económica
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  {perfil.actividadesEconomicas.map((act, i) => (
-                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography
-                        variant="body2"
-                        color={act.esPrincipal ? 'text.primary' : 'text.secondary'}
-                      >
-                        {act.codigo} - {act.descripcion}
-                      </Typography>
-                      {act.esPrincipal && (
-                        <Chip label="Principal" size="small" color="primary" variant="filled" />
-                      )}
-                    </Box>
-                  ))}
+      {/* Grey box — igual a ContactosCard */}
+      <Box sx={{ bgcolor: 'grey.100', borderRadius: 2, overflow: 'hidden' }}>
+        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {editing && draft ? (
+            /* ── EDIT MODE ── */
+            <>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Nombre / Razón social
+                  </Typography>
+                  <Typography variant="body2">{nombreRazonSocial}</Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Documento
+                  </Typography>
+                  <Typography variant="body2">
+                    {identificacionTipo}: {nit}
+                  </Typography>
                 </Box>
               </Box>
-            </Box>
 
-            {/* Atributos fiscales */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-              <Box sx={{ color: 'text.secondary', display: 'flex', pt: '2px', flexShrink: 0 }}>
-                <IconReceipt size={16} />
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel>Tipo de persona</InputLabel>
+                  <Select
+                    value={draft.tipoPersona}
+                    label="Tipo de persona"
+                    onChange={(e) =>
+                      patchDraft({ tipoPersona: e.target.value as PerfilTributario['tipoPersona'] })
+                    }
+                  >
+                    <MenuItem value="Jurídica">Jurídica</MenuItem>
+                    <MenuItem value="Natural">Natural</MenuItem>
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ flex: 1 }}>
+                  <InputLabel>Régimen tributario</InputLabel>
+                  <Select
+                    value={draft.regimenTributario}
+                    label="Régimen tributario"
+                    onChange={(e) => patchDraft({ regimenTributario: e.target.value })}
+                  >
+                    {REGIMENES.map((r) => (
+                      <MenuItem key={r} value={r}>{r}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Box>
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Typography variant="body2" color="text.secondary">
+
+              <Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                   Atributos fiscales
                 </Typography>
-                <Box sx={{ display: 'flex', gap: 0.5 }}>
-                  {/* Columna izquierda */}
-                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {ATRIBUTOS.map(([key, label]) =>
-                      perfil[key] ? (
-                        <Typography key={key} variant="body2" color="text.secondary">
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  {([...ATRIBUTOS, ...ATRIBUTOS_RIGHT] as [keyof PerfilTributario, string][]).map(
+                    ([key, label]) => (
+                      <Box
+                        key={key}
+                        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
                           {label}
                         </Typography>
-                      ) : null
-                    )}
-                  </Box>
-                  {/* Columna derecha */}
-                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {ATRIBUTOS_RIGHT.map(([key, label]) =>
-                      perfil[key] ? (
-                        <Typography key={key} variant="body2" color="text.secondary">
-                          {label}
+                        <Switch
+                          size="small"
+                          checked={draft[key] as boolean}
+                          onChange={(e) => patchDraft({ [key]: e.target.checked })}
+                        />
+                      </Box>
+                    )
+                  )}
+                </Box>
+              </Box>
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                <Button variant="text" size="small" onClick={handleCancel}>
+                  Cancelar
+                </Button>
+                <Button variant="outlined" size="small" onClick={handleSave}>
+                  Guardar
+                </Button>
+              </Box>
+            </>
+          ) : (
+            /* ── VIEW MODE ── */
+            <>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <FieldCol icon={<IconUser size={16} />} label="Nombre / Razón social" value={nombreRazonSocial ?? ''} />
+                <FieldCol icon={<IconId size={16} />} label="Documento" value={`${identificacionTipo ?? ''}: ${nit ?? ''}`} />
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <FieldCol icon={<IconUser size={16} />} label="Tipo de persona" value={perfil.tipoPersona} />
+                <FieldCol icon={<IconBuildingBank size={16} />} label="Régimen tributario" value={perfil.regimenTributario} />
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <Box sx={{ color: 'text.secondary', display: 'flex', pt: '2px', flexShrink: 0 }}>
+                  <IconBox size={16} />
+                </Box>
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Actividad económica
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {perfil.actividadesEconomicas.map((act, i) => (
+                      <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography
+                          variant="body2"
+                          color={act.esPrincipal ? 'text.primary' : 'text.secondary'}
+                        >
+                          {act.codigo} - {act.descripcion}
                         </Typography>
-                      ) : null
-                    )}
+                        {act.esPrincipal && (
+                          <Chip label="Principal" size="small" color="primary" variant="filled" />
+                        )}
+                      </Box>
+                    ))}
                   </Box>
                 </Box>
               </Box>
-            </Box>
-          </>
-        )}
+
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <Box sx={{ color: 'text.secondary', display: 'flex', pt: '2px', flexShrink: 0 }}>
+                  <IconReceipt size={16} />
+                </Box>
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Atributos fiscales
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {ATRIBUTOS.map(([key, label]) =>
+                        perfil[key] ? (
+                          <Typography key={key} variant="body2" color="text.secondary">
+                            {label}
+                          </Typography>
+                        ) : null
+                      )}
+                    </Box>
+                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {ATRIBUTOS_RIGHT.map(([key, label]) =>
+                        perfil[key] ? (
+                          <Typography key={key} variant="body2" color="text.secondary">
+                            {label}
+                          </Typography>
+                        ) : null
+                      )}
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+            </>
+          )}
+        </Box>
       </Box>
     </Paper>
   );

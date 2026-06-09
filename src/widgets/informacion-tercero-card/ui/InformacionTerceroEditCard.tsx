@@ -10,6 +10,7 @@ import ToggleButton from '@mui/material/ToggleButton';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import { IconUser, IconBuilding, IconAlertCircle } from '@tabler/icons-react';
+import { slideUp } from '@/shared/ui/animations';
 import type { TerceroTipo, TerceroRol } from '@/shared/types/tercero';
 import type { DuplicadoInfo } from './InformacionTerceroCard';
 
@@ -82,6 +83,7 @@ export function InformacionTerceroEditCard({
         borderRadius: 2,
         p: 2,
         boxShadow: '0px 6px 6px 0px rgba(34,0,255,0.04)',
+        ...slideUp,
       }}
     >
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

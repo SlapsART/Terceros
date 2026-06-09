@@ -24,6 +24,7 @@ import ToggleButton from '@mui/material/ToggleButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import { IconAddressBook, IconPlus, IconPencil, IconX } from '@tabler/icons-react';
 import type { Contacto, ContactoTipo } from '@/shared/types/tercero';
+import { fadeIn } from '@/shared/ui/animations';
 
 const TIPOS_CONTACTO: ContactoTipo[] = [
   'Representante legal',
@@ -47,6 +48,7 @@ interface ContactosCardProps {
   disableAutoForm?: boolean;
   ocrAddedIds?: string[];
   onContactoActivado?: (updatedContactos: Contacto[]) => void;
+  editOcrItems?: boolean;
 }
 
 interface ContactoForm {
@@ -84,7 +86,33 @@ const OCR_ROW_SX = {
   },
 } as const;
 
-export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInactivar, onDirtyChange, mode = 'edit', skeletonCount = 0, disableAutoForm = false, ocrAddedIds = [], onContactoActivado }: ContactosCardProps) {
+const TOGGLE_CHIP_SX = {
+  borderRadius: '4px !important',
+  border: '0.75px solid !important',
+  borderColor: 'grey.200 !important',
+  height: 32,
+  minHeight: 32,
+  px: 1.5,
+  '&.Mui-selected': {
+    color: 'primary.main',
+    borderColor: 'rgba(83,35,222,0.5) !important',
+    backgroundColor: '#ffffff !important',
+    '&:hover': { backgroundColor: '#ffffff !important' },
+  },
+} as const;
+
+export function ContactosCard({
+  contactos,
+  onContactosChange,
+  onTerceroAutoInactivar,
+  onDirtyChange,
+  mode = 'edit',
+  skeletonCount = 0,
+  disableAutoForm = false,
+  ocrAddedIds = [],
+  onContactoActivado,
+  editOcrItems = false,
+}: ContactosCardProps) {
   const [form, setForm] = useState<ContactoForm | null>(
     !disableAutoForm && contactos.length === 0 ? EMPTY_FORM : null
   );
@@ -94,12 +122,71 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
   const [inactivarDialog, setInactivarDialog] = useState<InactivarDialogState | null>(null);
   const [nuevoPrincipalId, setNuevoPrincipalId] = useState('');
 
+  // Multi-edit state for OCR items
+  const [ocrEditForms, setOcrEditForms] = useState<Record<string, ContactoForm>>({});
+
   const isFormOpen = form !== null;
   const editingId = isFormOpen && formMode.kind === 'edit' ? formMode.id : null;
 
   useEffect(() => {
     onDirtyChange?.(isFormOpen);
   }, [isFormOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Initialize edit forms for all OCR items when OCR finishes
+  useEffect(() => {
+    if (!editOcrItems || ocrAddedIds.length === 0) return;
+    const init: Record<string, ContactoForm> = {};
+    for (const c of contactos) {
+      if (ocrAddedIds.includes(c.id)) {
+        init[c.id] = {
+          tipo: c.tipo,
+          email: c.email,
+          codigoPais: c.codigoPais,
+          telefono: c.telefono,
+          nombre: c.nombre ?? '',
+          showNombre: !!c.nombre,
+        };
+      }
+    }
+    setOcrEditForms(init);
+  }, [editOcrItems]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const updateOcrForm = (id: string, updater: (f: ContactoForm) => ContactoForm) => {
+    setOcrEditForms((prev) => ({ ...prev, [id]: updater(prev[id]) }));
+  };
+
+  const handleOcrConfirm = (id: string) => {
+    const f = ocrEditForms[id];
+    if (!f) return;
+    onContactosChange(
+      contactos.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              tipo: (f.tipo || c.tipo) as ContactoTipo,
+              email: f.email,
+              codigoPais: f.codigoPais,
+              telefono: f.telefono,
+              nombre: f.nombre || undefined,
+            }
+          : c
+      )
+    );
+    setOcrEditForms((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const handleOcrCancel = (id: string) => {
+    onContactosChange(contactos.filter((c) => c.id !== id));
+    setOcrEditForms((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
 
   const openNew = () => {
     setFormMode({ kind: 'new' });
@@ -183,7 +270,6 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
     onContactosChange(updated);
     setInactivarDialog(null);
     setInactivarSnackOpen(true);
-    // Si no quedan contactos activos, auto-inactivar el tercero
     const quedanActivos = updated.some((c) => c.activo);
     if (!quedanActivos) {
       onTerceroAutoInactivar?.();
@@ -196,19 +282,116 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
     setForm((f) => (f ? { ...f, tipo: t } : f));
   };
 
+  const renderOcrItemForm = (id: string) => {
+    const f = ocrEditForms[id];
+    if (!f) return null;
+    return (
+      <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, ...fadeIn }}>
+        {/* Tipo de contacto */}
+        <Box>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            Tipo de contacto{' '}
+            <Box component="span" sx={{ color: 'error.main' }}>*</Box>
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {TIPOS_CONTACTO.map((t) => (
+              <ToggleButton
+                key={t}
+                value={t}
+                selected={f.tipo === t}
+                onChange={() => updateOcrForm(id, (ff) => ({ ...ff, tipo: t }))}
+                size="small"
+                sx={TOGGLE_CHIP_SX}
+              >
+                <Typography variant="caption">{t}</Typography>
+              </ToggleButton>
+            ))}
+          </Box>
+        </Box>
+
+        {/* Correo + teléfono */}
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <TextField
+            label="Correo electrónico"
+            required
+            size="small"
+            sx={{ flex: 1 }}
+            value={f.email}
+            onChange={(e) => updateOcrForm(id, (ff) => ({ ...ff, email: e.target.value }))}
+          />
+          <FormControl size="small" sx={{ width: 88 }}>
+            <Select
+              value={f.codigoPais}
+              onChange={(e) => updateOcrForm(id, (ff) => ({ ...ff, codigoPais: e.target.value }))}
+            >
+              {CODIGOS_PAIS.map((c) => (
+                <MenuItem key={c} value={c}>{c}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <TextField
+            label="Número"
+            required
+            size="small"
+            sx={{ flex: 1 }}
+            value={f.telefono}
+            onChange={(e) => updateOcrForm(id, (ff) => ({ ...ff, telefono: e.target.value }))}
+          />
+        </Box>
+
+        {/* Nombre */}
+        {f.showNombre ? (
+          <TextField
+            label="Nombre"
+            size="small"
+            fullWidth
+            value={f.nombre}
+            onChange={(e) => updateOcrForm(id, (ff) => ({ ...ff, nombre: e.target.value }))}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    edge="end"
+                    onClick={() => updateOcrForm(id, (ff) => ({ ...ff, showNombre: false, nombre: '' }))}
+                  >
+                    <IconX size={14} />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+        ) : (
+          <Button
+            size="small"
+            startIcon={<IconPlus size={14} />}
+            onClick={() => updateOcrForm(id, (ff) => ({ ...ff, showNombre: true }))}
+            sx={{ color: 'text.secondary', alignSelf: 'flex-start' }}
+          >
+            Agregar nombre
+          </Button>
+        )}
+
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Button variant="text" size="small" onClick={() => handleOcrCancel(id)}>
+            Cancelar
+          </Button>
+          <Button variant="outlined" size="small" onClick={() => handleOcrConfirm(id)}>
+            Agregar
+          </Button>
+        </Box>
+      </Box>
+    );
+  };
+
   const renderForm = (
-    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2, ...fadeIn }}>
       {formMode.kind === 'new' && contactos.length > 0 && (
         <Typography variant="subtitle2">Nuevo contacto</Typography>
       )}
 
-      {/* Tipo de contacto */}
       <Box>
-        <Typography
-          variant="caption"
-          color="text.secondary"
-          sx={{ display: 'block', mb: 1 }}
-        >
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
           Tipo de contacto{' '}
           <Box component="span" sx={{ color: 'error.main' }}>*</Box>
         </Typography>
@@ -220,20 +403,7 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
               selected={form?.tipo === t}
               onChange={() => selectTipo(t)}
               size="small"
-              sx={{
-                borderRadius: '4px !important',
-                border: '0.75px solid !important',
-                borderColor: 'grey.200 !important',
-                height: 32,
-                minHeight: 32,
-                px: 1.5,
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                  borderColor: 'rgba(83,35,222,0.5) !important',
-                  backgroundColor: '#ffffff !important',
-                  '&:hover': { backgroundColor: '#ffffff !important' },
-                },
-              }}
+              sx={TOGGLE_CHIP_SX}
             >
               <Typography variant="caption">{t}</Typography>
             </ToggleButton>
@@ -241,7 +411,6 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
         </Box>
       </Box>
 
-      {/* Correo + teléfono */}
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
         <TextField
           label="Correo electrónico"
@@ -271,7 +440,6 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
         />
       </Box>
 
-      {/* Nombre — solo en creación */}
       {formMode.kind === 'new' && (
         form?.showNombre ? (
           <TextField
@@ -306,7 +474,6 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
         )
       )}
 
-      {/* Cancelar / Confirmar */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
         <Button variant="text" size="small" onClick={handleCancelar}>
           Cancelar
@@ -323,7 +490,7 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
       <Paper
         elevation={0}
         sx={{
-          border: '1px solid',
+          border: isFormOpen && mode === 'edit' ? '2px solid' : '1px solid',
           borderColor: isFormOpen && mode === 'edit' ? 'primary.main' : 'divider',
           borderRadius: 2,
           overflow: 'hidden',
@@ -333,7 +500,6 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
           gap: 1.5,
         }}
       >
-        {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: 32 }}>
           <Box sx={{ color: 'text.secondary', display: 'flex' }}>
             <IconAddressBook size={18} />
@@ -343,11 +509,13 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
           </Typography>
         </Box>
 
-        {/* Contenido — grey.50 con border-radius, DENTRO del padding blanco */}
-        <Box sx={{ bgcolor: 'grey.50', borderRadius: 2, overflow: 'hidden' }}>
+        <Box sx={{ bgcolor: 'grey.100', borderRadius: 2, overflow: 'hidden' }}>
           {contactos.map((contacto) => {
             if (editingId === contacto.id) {
               return <Box key={contacto.id}>{renderForm}</Box>;
+            }
+            if (editOcrItems && ocrEditForms[contacto.id]) {
+              return <Box key={contacto.id}>{renderOcrItemForm(contacto.id)}</Box>;
             }
             const isOcrRow = ocrAddedIds.includes(contacto.id);
             return (
@@ -385,7 +553,7 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
                   <IconButton size="small" sx={{ color: 'primary.main' }} onClick={() => openEdit(contacto)}>
-                    <IconPencil size={14} />
+                    <IconPencil size={16} />
                   </IconButton>
                   <Switch
                     size="small"
@@ -397,7 +565,6 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
             );
           })}
 
-          {/* Skeleton rows — OCR loading */}
           {skeletonCount > 0 && Array.from({ length: skeletonCount }).map((_, i) => (
             <Box key={`skeleton-c-${i}`} sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box sx={{ flex: 1 }}>
@@ -414,7 +581,6 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
           {formMode.kind === 'new' && form && renderForm}
         </Box>
 
-        {/* Agregar contacto — siempre visible, fuera del grey box */}
         <Box sx={{ display: 'flex', justifyContent: 'center' }}>
           <Button
             size="small"
@@ -452,7 +618,6 @@ export function ContactosCard({ contactos, onContactosChange, onTerceroAutoInact
         </Alert>
       </Snackbar>
 
-      {/* Dialog de confirmación inactivar contacto */}
       <Dialog
         open={Boolean(inactivarDialog)}
         onClose={handleInactivarCancel}

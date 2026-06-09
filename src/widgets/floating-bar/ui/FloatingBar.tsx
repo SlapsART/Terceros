@@ -8,6 +8,7 @@ interface FloatingBarProps {
   onGuardar: () => void;
   guardarLabel?: string;
   showInactivar?: boolean;
+  guardarDisabled?: boolean;
 }
 
 export function FloatingBar({
@@ -16,6 +17,7 @@ export function FloatingBar({
   onGuardar,
   guardarLabel = 'Crear tercero',
   showInactivar = true,
+  guardarDisabled = false,
 }: FloatingBarProps) {
   return (
     <Box
@@ -23,10 +25,9 @@ export function FloatingBar({
         position: 'fixed',
         bottom: 12,
         left: '50%',
-        transform: 'translateX(-50%)',
         zIndex: 1200,
         bgcolor: 'background.paper',
-        borderRadius: 1,
+        borderRadius: 2,
         boxShadow: '0px 4px 20px rgba(0,0,0,0.12)',
         display: 'flex',
         alignItems: 'center',
@@ -34,6 +35,11 @@ export function FloatingBar({
         px: 2,
         py: 1,
         minWidth: 400,
+        animation: 'floatBarIn 0.32s cubic-bezier(0.16,1,0.3,1) both',
+        '@keyframes floatBarIn': {
+          from: { opacity: 0, transform: 'translateX(-50%) translateY(14px)' },
+          to:   { opacity: 1, transform: 'translateX(-50%) translateY(0)' },
+        },
       }}
     >
       {showInactivar && onInactivar && (
@@ -57,7 +63,7 @@ export function FloatingBar({
             Descartar
           </Button>
         )}
-        <Button variant="contained" size="medium" onClick={onGuardar}>
+        <Button variant="contained" size="medium" onClick={onGuardar} disabled={guardarDisabled}>
           {guardarLabel}
         </Button>
       </Box>

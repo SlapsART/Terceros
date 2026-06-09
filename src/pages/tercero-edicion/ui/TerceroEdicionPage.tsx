@@ -13,6 +13,7 @@ import { PerfilTributarioCard } from '@/widgets/perfil-tributario-card';
 import { InactivarTerceroDialog } from '@/features/inactivar-tercero';
 import { SalirSinGuardarDialog } from '@/features/salir-sin-guardar';
 import { MOCK_TERCEROS } from '@/shared/mocks/terceros';
+import { slideUp, fadeIn } from '@/shared/ui/animations';
 import type {
   Tercero,
   Contacto,
@@ -156,11 +157,13 @@ export function TerceroEdicionPage() {
             gap: 3,
             width: viewerOpen ? 'auto' : 1100,
             maxWidth: '100%',
+            ...slideUp,
           }}
         >
-          {/* Left panel: profile card OR edit form */}
+          {/* Left panel: profile card OR edit form — key forces remount → animation */}
           <Box sx={{ width: 340, flexShrink: 0 }}>
             {editingInfo ? (
+              <Box key="edit" sx={fadeIn}>
               <InformacionTerceroEditCard
                 nombre={nombre}
                 tipo={tipo}
@@ -177,7 +180,9 @@ export function TerceroEdicionPage() {
                 onCancel={() => setEditingInfo(false)}
                 onSave={() => setEditingInfo(false)}
               />
+              </Box>
             ) : (
+              <Box key="view" sx={fadeIn}>
               <TerceroPerfilCard
                 tercero={terceroConDatos}
                 activeTab={activeTab}
@@ -189,13 +194,14 @@ export function TerceroEdicionPage() {
                 tieneDireccionPreferida={direcciones.some((d) => d.esPreferida)}
                 onViewDocument={tercero.documentoFuente ? () => setViewerOpen(true) : undefined}
               />
+              </Box>
             )}
           </Box>
 
           {/* Center panel: tabbed content */}
           <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {activeTab === 'contacto' && (
-              <>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, ...fadeIn }}>
                 <ContactosCard
                   contactos={contactos}
                   onContactosChange={setContactos}
@@ -218,17 +224,19 @@ export function TerceroEdicionPage() {
                   onDireccionesChange={setDirecciones}
                   onDirtyChange={setIsDirty}
                 />
-              </>
+              </Box>
             )}
             {activeTab === 'tributario' && (
-              <PerfilTributarioCard
-                nombreRazonSocial={nombre}
-                identificacionTipo={identificacionTipo}
-                nit={tercero.nit}
-                perfil={perfilTributario}
-                onPerfilChange={setPerfilTributario}
-                onDirtyChange={setIsDirty}
-              />
+              <Box sx={fadeIn}>
+                <PerfilTributarioCard
+                  nombreRazonSocial={nombre}
+                  identificacionTipo={identificacionTipo}
+                  nit={tercero.nit}
+                  perfil={perfilTributario}
+                  onPerfilChange={setPerfilTributario}
+                  onDirtyChange={setIsDirty}
+                />
+              </Box>
             )}
           </Box>
 

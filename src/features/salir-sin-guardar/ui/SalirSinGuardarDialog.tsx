@@ -5,6 +5,7 @@ import DialogActions from '@mui/material/DialogActions';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
+import Zoom from '@mui/material/Zoom';
 import { IconX } from '@tabler/icons-react';
 
 interface SalirSinGuardarDialogProps {
@@ -26,6 +27,8 @@ export function SalirSinGuardarDialog({
       onClose={onClose}
       maxWidth="xs"
       fullWidth
+      TransitionComponent={Zoom}
+      transitionDuration={200}
       slotProps={{ paper: { sx: { borderRadius: 2 } } }}
     >
       <DialogTitle sx={{ pr: 6, pb: 1 }}>

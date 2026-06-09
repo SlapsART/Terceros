@@ -3,6 +3,7 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import Button from '@mui/material/Button';
 import { IconArrowLeft, IconPlus } from '@tabler/icons-react';
+import { slideDown } from '@/shared/ui/animations';
 
 interface PageHeaderProps {
   title: string;
@@ -18,9 +19,10 @@ export function PageHeader({ title, onBack, actionLabel, onAction }: PageHeaderP
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        py: 1,
+        py: 1.5,
         px: 2,
-        minHeight: 48,
+        minHeight: 56,
+        ...slideDown,
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

@@ -8,10 +8,12 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
+import InputAdornment from '@mui/material/InputAdornment';
 import Paper from '@mui/material/Paper';
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
 import Skeleton from '@mui/material/Skeleton';
-import { IconBuilding, IconUser, IconPaperclip, IconAlertCircle } from '@tabler/icons-react';
+import { IconBuilding, IconUser, IconPaperclip, IconAlertCircle, IconAlertTriangle } from '@tabler/icons-react';
 import type { TerceroTipo, TerceroRol } from '@/shared/types/tercero';
 
 export interface DuplicadoInfo {
@@ -33,6 +35,7 @@ interface InformacionTerceroCardProps {
   roles: TerceroRol[];
   documentoFuente?: string;
   duplicado?: DuplicadoInfo | null;
+  duplicadoMode?: 'warning' | 'error';
   loadingFields?: string[];
   onViewDocument?: () => void;
   onNombreChange: (v: string) => void;
@@ -41,6 +44,7 @@ interface InformacionTerceroCardProps {
   onIdentificacionNumeroChange: (v: string) => void;
   onPaisChange: (v: string) => void;
   onRolesChange: (v: TerceroRol[]) => void;
+  onOmitirDuplicado?: () => void;
 }
 
 const REVEAL_ANIMATION = {
@@ -60,6 +64,7 @@ export function InformacionTerceroCard({
   roles,
   documentoFuente,
   duplicado = null,
+  duplicadoMode = 'error',
   loadingFields = [],
   onViewDocument,
   onNombreChange,
@@ -68,6 +73,7 @@ export function InformacionTerceroCard({
   onIdentificacionNumeroChange,
   onPaisChange,
   onRolesChange,
+  onOmitirDuplicado,
 }: InformacionTerceroCardProps) {
   const loading = (field: string) => loadingFields.includes(field);
   const toggleRole = (rol: TerceroRol) => {
@@ -77,6 +83,25 @@ export function InformacionTerceroCard({
       onRolesChange([...roles, rol]);
     }
   };
+
+  const hasError = !!duplicado && duplicadoMode === 'error';
+  const hasWarning = !!duplicado && duplicadoMode === 'warning';
+
+  const errorAdornment = hasError ? (
+    <InputAdornment position="start">
+      <Box sx={{ color: 'error.main', display: 'flex', alignItems: 'center' }}>
+        <IconAlertCircle size={14} />
+      </Box>
+    </InputAdornment>
+  ) : undefined;
+
+  const warningAdornmentNumero = hasWarning ? (
+    <InputAdornment position="start">
+      <Box sx={{ color: 'warning.main', display: 'flex', alignItems: 'center' }}>
+        <IconAlertTriangle size={14} />
+      </Box>
+    </InputAdornment>
+  ) : undefined;
 
   return (
     <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, p: 3 }}>
@@ -146,7 +171,8 @@ export function InformacionTerceroCard({
           </Box>
         )}
 
-        {duplicado && (
+        {/* Alert "error": posición ANTES de identificación */}
+        {duplicado && duplicadoMode === 'error' && (
           <Alert
             severity="error"
             icon={
@@ -205,12 +231,13 @@ export function InformacionTerceroCard({
               Identificación <Box component="span" sx={{ color: 'error.main' }}>*</Box>
             </Typography>
             <Box sx={{ display: 'flex', gap: 1 }}>
-              <FormControl sx={{ minWidth: 180 }}>
+              <FormControl sx={{ minWidth: 180 }} error={hasError}>
                 <InputLabel>Tipo</InputLabel>
                 <Select
                   value={identificacionTipo}
                   label="Tipo"
                   onChange={(e) => onIdentificacionTipoChange(e.target.value)}
+                  startAdornment={errorAdornment}
                 >
                   {ID_TYPES.map((t) => (
                     <MenuItem key={t} value={t}>{t}</MenuItem>
@@ -223,9 +250,42 @@ export function InformacionTerceroCard({
                 fullWidth
                 value={identificacionNumero}
                 onChange={(e) => onIdentificacionNumeroChange(e.target.value)}
+                error={hasError}
+                InputProps={{ startAdornment: errorAdornment ?? warningAdornmentNumero }}
               />
             </Box>
           </Box>
+        )}
+
+        {/* Alert "warning": posición DESPUÉS de identificación, ANTES de pais */}
+        {duplicado && duplicadoMode === 'warning' && (
+          <Alert
+            severity="warning"
+            action={
+              <Button
+                color="warning"
+                size="small"
+                variant="outlined"
+                onClick={onOmitirDuplicado}
+                sx={{ textTransform: 'none', fontWeight: 600, borderRadius: 1, whiteSpace: 'nowrap' }}
+              >
+                Omitir
+              </Button>
+            }
+            sx={{
+              borderRadius: 1,
+              py: 0.5,
+              px: 2,
+              alignItems: 'center',
+              '& .MuiAlert-icon': { p: 0, mr: 1 },
+              '& .MuiAlert-message': { p: 0, py: 0.75, flex: 1 },
+              '& .MuiAlert-action': { pt: 0, pl: 1 },
+            }}
+          >
+            <Typography variant="subtitle2">
+              Ya existe un tercero con la información diligenciada.
+            </Typography>
+          </Alert>
         )}
 
         {/* País */}
@@ -233,9 +293,14 @@ export function InformacionTerceroCard({
           <Skeleton variant="rounded" height={56} animation="wave" />
         ) : (
           <Box sx={REVEAL_ANIMATION}>
-            <FormControl fullWidth required>
+            <FormControl fullWidth required error={hasError}>
               <InputLabel>País</InputLabel>
-              <Select value={pais} label="País" onChange={(e) => onPaisChange(e.target.value)}>
+              <Select
+                value={pais}
+                label="País"
+                onChange={(e) => onPaisChange(e.target.value)}
+                startAdornment={errorAdornment}
+              >
                 {PAISES.map((p) => (
                   <MenuItem key={p} value={p}>{p}</MenuItem>
                 ))}

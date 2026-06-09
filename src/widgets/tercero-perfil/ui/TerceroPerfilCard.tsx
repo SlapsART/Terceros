@@ -14,6 +14,7 @@ import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
 import { IconEdit, IconUser, IconMapPin, IconBriefcase, IconPaperclip } from '@tabler/icons-react';
 import type { Tercero } from '@/shared/types/tercero';
+import { slideUp } from '@/shared/ui/animations';
 
 type TabValue = 'contacto' | 'tributario' | 'bancario' | 'documentos';
 
@@ -61,6 +62,7 @@ export function TerceroPerfilCard({
         position: 'relative',
         minWidth: 320,
         maxWidth: 340,
+        ...slideUp,
       }}
     >
       <IconButton
@@ -73,8 +75,8 @@ export function TerceroPerfilCard({
 
       <Box
         sx={{
-          width: 64,
-          height: 64,
+          width: 80,
+          height: 80,
           mb: 2,
           border: '2px dashed',
           borderColor: activo ? 'primary.200' : 'grey.300',
@@ -86,8 +88,8 @@ export function TerceroPerfilCard({
       >
         <Avatar
           sx={{
-            width: 48,
-            height: 48,
+            width: 60,
+            height: 60,
             bgcolor: activo ? 'primary.main' : 'grey.400',
           }}
         >

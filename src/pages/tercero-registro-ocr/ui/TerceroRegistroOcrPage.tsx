@@ -10,6 +10,7 @@ import { AccionesNuevasCard } from '@/widgets/acciones-nuevas-card';
 import { PerfilTributarioCard } from '@/widgets/perfil-tributario-card';
 import { OcrDocumentoViewer } from '@/shared/ui/OcrDocumentoViewer';
 import type { Tercero, TerceroTipo, TerceroRol, Contacto, Direccion, PerfilTributario, ContactoTipo, DireccionTipo } from '@/shared/types/tercero';
+import { slideUp } from '@/shared/ui/animations';
 
 interface OcrState {
   files?: Array<{ name: string; sizeLabel: string; formatLabel: string }>;
@@ -249,6 +250,7 @@ export function TerceroRegistroOcrPage() {
               display: 'flex',
               flexDirection: 'column',
               gap: 2,
+              ...slideUp,
             }}
           >
             <InformacionTerceroCard
@@ -275,6 +277,7 @@ export function TerceroRegistroOcrPage() {
               skeletonCount={contactoSkeletons}
               disableAutoForm
               ocrAddedIds={ocrContactIds}
+              editOcrItems={!isScanning}
             />
             <DireccionesCard
               direcciones={direcciones}
@@ -283,6 +286,7 @@ export function TerceroRegistroOcrPage() {
               skeletonCount={direccionSkeletons}
               disableAutoForm
               ocrAddedIds={ocrDirIds}
+              editOcrItems={!isScanning}
             />
             {(perfilTributarioLoading || perfilTributario) && (
               <PerfilTributarioCard
@@ -293,6 +297,8 @@ export function TerceroRegistroOcrPage() {
                 isLoading={perfilTributarioLoading}
                 onPerfilChange={setPerfilTributario}
                 onDirtyChange={() => {}}
+                initialEditing
+                disableEditHighlight
               />
             )}
             <AccionesNuevasCard
@@ -302,7 +308,7 @@ export function TerceroRegistroOcrPage() {
 
           {/* Split view + document viewer — 443px */}
           {viewerOpen && (
-            <Box sx={{ width: 443, flexShrink: 0, height: 624 }}>
+            <Box sx={{ width: 443, flexShrink: 0, position: 'sticky', top: '24px', height: 624 }}>
               <OcrDocumentoViewer
                 filename={filename}
                 onClose={() => setViewerOpen(false)}

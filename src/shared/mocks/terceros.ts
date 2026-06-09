@@ -211,4 +211,17 @@ export const MOCK_TERCEROS: Tercero[] = [
     contactos: [],
     direcciones: [],
   },
+  {
+    id: '13',
+    nombre: 'Andina Capital S.A.S - CO',
+    nit: '',
+    tipo: 'Organizacion',
+    identificacionTipo: 'Cédula extranjera',
+    identificacionNumero: '5698745894',
+    pais: 'República dominicana',
+    roles: ['Proveedor', 'Empleado', 'Entidad financiera'],
+    estado: 'Activo',
+    contactos: [],
+    direcciones: [],
+  },
 ];

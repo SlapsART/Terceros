@@ -20,10 +20,10 @@ import {
 import type { EventoHistorial, TipoEventoHistorial } from '@/shared/types/historial';
 
 const TIPO_CONFIG: Record<TipoEventoHistorial, { label: string; color: string; ring: string }> = {
-  eliminacion: { label: 'Eliminación', color: '#d14343', ring: 'rgba(209,67,67,0.18)' },
-  asignacion:  { label: 'Asignación',  color: '#2f43d0', ring: 'rgba(47,67,208,0.18)' },
-  actualizacion: { label: 'Actualización', color: '#2d9fc5', ring: 'rgba(45,159,197,0.18)' },
-  activacion:  { label: 'Activación',  color: '#8fc93a', ring: 'rgba(143,201,58,0.18)' },
+  eliminacion:  { label: 'Eliminación',   color: '#e8a1a1', ring: '#f9e8e8' },
+  asignacion:   { label: 'Asignación',    color: '#d6d5ff', ring: '#f3f3ff' },
+  actualizacion:{ label: 'Actualización', color: '#96cfe2', ring: '#e6f3f8' },
+  activacion:   { label: 'Activación',    color: '#c7e49d', ring: '#f2f9e7' },
 };
 
 interface EventoDotProps {
@@ -40,7 +40,7 @@ function EventoDot({ tipo }: EventoDotProps) {
           height: 8,
           borderRadius: '50%',
           bgcolor: color,
-          boxShadow: `0 0 0 4px ${ring}`,
+          boxShadow: `0 0 0 5px ${ring}`,
           flexShrink: 0,
           cursor: 'default',
         }}
@@ -82,11 +82,11 @@ function EventoRow({ evento, isLast, expanded, onToggle }: EventoRowProps) {
       </Box>
 
       {/* Columna contenido */}
-      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1.5, pb: isLast ? 0 : 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Typography
-            variant="subtitle1"
-            sx={{ fontSize: '0.875rem', fontWeight: 500, lineHeight: '16px', letterSpacing: '0.15px', whiteSpace: 'nowrap' }}
+            variant="body2"
+            sx={{ lineHeight: '16px', letterSpacing: '0.15px', whiteSpace: 'nowrap' }}
           >
             {evento.titulo}
           </Typography>
@@ -272,7 +272,7 @@ export function HistorialDrawer({ open, eventos, onClose }: HistorialDrawerProps
         </Box>
 
         {/* Timeline */}
-        <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {filtered.map((evento, idx) => (
             <EventoRow
               key={evento.id}

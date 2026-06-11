@@ -9,7 +9,7 @@ export function TercerosTableHeader() {
         display: 'flex',
         alignItems: 'center',
         gap: 1.5,
-        px: 3,
+        px: 2,
         py: 0.5,
         bgcolor: 'grey.100',
         ...fadeIn,

@@ -39,7 +39,7 @@ export function TerceroTableRow({ tercero, onClick, index = 0 }: TerceroTableRow
           display: 'flex',
           alignItems: 'center',
           gap: 1.5,
-          px: 3,
+          px: 2,
           cursor: 'pointer',
           transition: 'background-color 0.15s ease',
           '&:hover': { bgcolor: 'action.hover' },

@@ -12,7 +12,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
-import { IconEdit, IconHistory, IconUser, IconMapPin, IconBriefcase, IconPaperclip } from '@tabler/icons-react';
+import { IconPencil, IconHistory, IconUser, IconMapPin, IconBriefcase, IconPaperclip } from '@tabler/icons-react';
 import type { Tercero } from '@/shared/types/tercero';
 import { slideUp } from '@/shared/ui/animations';
 
@@ -69,7 +69,7 @@ export function TerceroPerfilCard({
     >
       <Box sx={{ position: 'absolute', top: '16px', right: '16px', display: 'flex', gap: '4px', alignItems: 'center' }}>
         <IconButton size="small" onClick={onEdit} sx={{ p: '3px', borderRadius: '50%' }}>
-          <Box sx={{ color: 'primary.main', display: 'flex' }}><IconEdit size={16} /></Box>
+          <Box sx={{ color: 'primary.main', display: 'flex' }}><IconPencil size={16} /></Box>
         </IconButton>
         {onHistorial && (
           <IconButton size="small" onClick={onHistorial} sx={{ p: '3px', borderRadius: '50%' }}>

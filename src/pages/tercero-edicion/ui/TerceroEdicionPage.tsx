@@ -300,6 +300,7 @@ export function TerceroEdicionPage() {
         autoHideDuration={4000}
         onClose={() => setEstadoSnack(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        sx={{ bottom: '12px !important' }}
       >
         <Alert onClose={() => setEstadoSnack(null)} severity="success">
           {estadoSnack}

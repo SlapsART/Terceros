@@ -662,6 +662,9 @@ export const cosmosTheme = createTheme({
             color: '#ffffff',
           },
         },
+        anchorOriginBottomCenter: { bottom: 12 },
+        anchorOriginBottomLeft:   { bottom: 12 },
+        anchorOriginBottomRight:  { bottom: 12 },
       },
     },
 

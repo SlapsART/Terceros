@@ -25,6 +25,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { IconAddressBook, IconPlus, IconPencil, IconX } from '@tabler/icons-react';
 import type { Contacto, ContactoTipo } from '@/shared/types/tercero';
 import { fadeIn } from '@/shared/ui/animations';
+import { CardEmptyState } from '@/shared/ui/CardEmptyState';
 
 const TIPOS_CONTACTO: ContactoTipo[] = [
   'Representante legal',
@@ -114,12 +115,21 @@ export function ContactosCard({
   editOcrItems = false,
 }: ContactosCardProps) {
   const [form, setForm] = useState<ContactoForm | null>(
-    !disableAutoForm && contactos.length === 0 ? EMPTY_FORM : null
+    !disableAutoForm && mode === 'creation' && contactos.length === 0 ? EMPTY_FORM : null
   );
   const [formMode, setFormMode] = useState<FormMode>({ kind: 'new' });
-  const [savedOpen, setSavedOpen] = useState(false);
-  const [inactivarSnackOpen, setInactivarSnackOpen] = useState(false);
+  const [snacks, setSnacks] = useState<Array<{ id: number; msg: string; open: boolean }>>([]);
   const [inactivarDialog, setInactivarDialog] = useState<InactivarDialogState | null>(null);
+
+  const pushSnack = (msg: string) => {
+    const id = Date.now();
+    setSnacks((prev) => [...prev, { id, msg, open: true }]);
+  };
+
+  const closeSnack = (id: number) => {
+    setSnacks((prev) => prev.map((s) => (s.id === id ? { ...s, open: false } : s)));
+    setTimeout(() => setSnacks((prev) => prev.filter((s) => s.id !== id)), 400);
+  };
   const [nuevoPrincipalId, setNuevoPrincipalId] = useState('');
 
   // Multi-edit state for OCR items
@@ -152,40 +162,24 @@ export function ContactosCard({
   }, [editOcrItems]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateOcrForm = (id: string, updater: (f: ContactoForm) => ContactoForm) => {
-    setOcrEditForms((prev) => ({ ...prev, [id]: updater(prev[id]) }));
-  };
-
-  const handleOcrConfirm = (id: string) => {
-    const f = ocrEditForms[id];
-    if (!f) return;
+    const current = ocrEditForms[id];
+    if (!current) return;
+    const updated = updater(current);
+    setOcrEditForms((prev) => ({ ...prev, [id]: updated }));
     onContactosChange(
       contactos.map((c) =>
         c.id === id
           ? {
               ...c,
-              tipo: (f.tipo || c.tipo) as ContactoTipo,
-              email: f.email,
-              codigoPais: f.codigoPais,
-              telefono: f.telefono,
-              nombre: f.nombre || undefined,
+              tipo: (updated.tipo || c.tipo) as ContactoTipo,
+              email: updated.email,
+              codigoPais: updated.codigoPais,
+              telefono: updated.telefono,
+              nombre: updated.nombre || undefined,
             }
           : c
       )
     );
-    setOcrEditForms((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-  };
-
-  const handleOcrCancel = (id: string) => {
-    onContactosChange(contactos.filter((c) => c.id !== id));
-    setOcrEditForms((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
   };
 
   const openNew = () => {
@@ -221,6 +215,7 @@ export function ContactosCard({
         activo: true,
       };
       onContactosChange([...contactos, nuevo]);
+      setForm(mode === 'creation' ? EMPTY_FORM : null);
     } else {
       onContactosChange(
         contactos.map((c) =>
@@ -236,9 +231,9 @@ export function ContactosCard({
             : c
         )
       );
-      setSavedOpen(true);
+      pushSnack('Información guardada');
+      setForm(null);
     }
-    setForm(null);
   };
 
   const handleToggleActivo = (contacto: Contacto) => {
@@ -269,7 +264,7 @@ export function ContactosCard({
     });
     onContactosChange(updated);
     setInactivarDialog(null);
-    setInactivarSnackOpen(true);
+    pushSnack('Contacto inactivado');
     const quedanActivos = updated.some((c) => c.activo);
     if (!quedanActivos) {
       onTerceroAutoInactivar?.();
@@ -371,15 +366,6 @@ export function ContactosCard({
             Agregar nombre
           </Button>
         )}
-
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-          <Button variant="text" size="small" onClick={() => handleOcrCancel(id)}>
-            Cancelar
-          </Button>
-          <Button variant="outlined" size="small" onClick={() => handleOcrConfirm(id)}>
-            Agregar
-          </Button>
-        </Box>
       </Box>
     );
   };
@@ -474,14 +460,16 @@ export function ContactosCard({
         )
       )}
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-        <Button variant="text" size="small" onClick={handleCancelar}>
-          Cancelar
-        </Button>
-        <Button variant="outlined" size="small" onClick={handleConfirm}>
-          {formMode.kind === 'edit' ? 'Guardar' : 'Agregar'}
-        </Button>
-      </Box>
+      {(formMode.kind === 'edit' || mode !== 'creation') && (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Button variant="text" size="small" onClick={handleCancelar}>
+            Cancelar
+          </Button>
+          <Button variant="outlined" size="small" onClick={handleConfirm}>
+            {formMode.kind === 'edit' ? 'Guardar' : 'Agregar'}
+          </Button>
+        </Box>
+      )}
     </Box>
   );
 
@@ -509,19 +497,21 @@ export function ContactosCard({
           </Typography>
         </Box>
 
-        <Box sx={{ bgcolor: 'grey.100', borderRadius: 2, overflow: 'hidden' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {contactos.map((contacto) => {
             if (editingId === contacto.id) {
-              return <Box key={contacto.id}>{renderForm}</Box>;
+              return <Box key={contacto.id} sx={{ bgcolor: 'grey.100', borderRadius: 2, overflow: 'hidden' }}>{renderForm}</Box>;
             }
             if (editOcrItems && ocrEditForms[contacto.id]) {
-              return <Box key={contacto.id}>{renderOcrItemForm(contacto.id)}</Box>;
+              return <Box key={contacto.id} sx={{ bgcolor: 'grey.100', borderRadius: 2, overflow: 'hidden' }}>{renderOcrItemForm(contacto.id)}</Box>;
             }
             const isOcrRow = ocrAddedIds.includes(contacto.id);
             return (
               <Box
                 key={contacto.id}
                 sx={{
+                  bgcolor: 'grey.100',
+                  borderRadius: 2,
                   display: 'flex',
                   alignItems: 'flex-start',
                   justifyContent: 'space-between',
@@ -566,7 +556,7 @@ export function ContactosCard({
           })}
 
           {skeletonCount > 0 && Array.from({ length: skeletonCount }).map((_, i) => (
-            <Box key={`skeleton-c-${i}`} sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Box key={`skeleton-c-${i}`} sx={{ bgcolor: 'grey.100', borderRadius: 2, px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Box sx={{ flex: 1 }}>
                 <Skeleton variant="text" width="45%" height={20} animation="wave" />
                 <Skeleton variant="text" width="70%" height={16} animation="wave" sx={{ mt: 0.5 }} />
@@ -578,45 +568,73 @@ export function ContactosCard({
             </Box>
           ))}
 
-          {formMode.kind === 'new' && form && renderForm}
+          {formMode.kind === 'new' && form && (
+            <Box sx={{ bgcolor: 'grey.100', borderRadius: 2, overflow: 'hidden' }}>{renderForm}</Box>
+          )}
+
+          {contactos.length === 0 && skeletonCount === 0 && !isFormOpen && (
+            <CardEmptyState
+              title="No tienes contactos registrados"
+              description="Aquí aparecerán todos tus contacto, empieza registrando uno."
+              actionLabel="Agregar contacto"
+              onAction={openNew}
+            />
+          )}
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-          <Button
-            size="small"
-            startIcon={<IconPlus size={14} />}
-            onClick={!isFormOpen && skeletonCount === 0 ? openNew : undefined}
-            sx={{
-              color: isFormOpen || skeletonCount > 0 ? 'action.disabled' : 'primary.main',
-              pointerEvents: isFormOpen || skeletonCount > 0 ? 'none' : 'auto',
-            }}
-          >
-            Agregar contacto
-          </Button>
-        </Box>
+        {(contactos.length > 0 || isFormOpen || skeletonCount > 0 || mode === 'creation') && (
+          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            {(() => {
+              const isFormDirty = form !== null && (
+                form.tipo !== '' || form.email.trim() !== '' || form.telefono.trim() !== '' || form.nombre.trim() !== ''
+              );
+              let clickable: boolean;
+              let handleClick: (() => void) | undefined;
+              if (mode === 'creation') {
+                if (isFormDirty) {
+                  clickable = true;
+                  handleClick = handleConfirm;
+                } else if (!isFormOpen && skeletonCount === 0) {
+                  clickable = true;
+                  handleClick = openNew;
+                } else {
+                  clickable = false;
+                  handleClick = undefined;
+                }
+              } else {
+                clickable = !isFormOpen && skeletonCount === 0;
+                handleClick = clickable ? openNew : undefined;
+              }
+              return (
+                <Button
+                  size="small"
+                  startIcon={<IconPlus size={14} />}
+                  onClick={handleClick}
+                  sx={{
+                    color: clickable ? 'primary.main' : 'action.disabled',
+                    pointerEvents: clickable ? 'auto' : 'none',
+                  }}
+                >
+                  Agregar contacto
+                </Button>
+              );
+            })()}
+          </Box>
+        )}
       </Paper>
 
-      <Snackbar
-        open={savedOpen}
-        autoHideDuration={3000}
-        onClose={() => setSavedOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSavedOpen(false)} severity="success">
-          Información guardada
-        </Alert>
-      </Snackbar>
-
-      <Snackbar
-        open={inactivarSnackOpen}
-        autoHideDuration={3000}
-        onClose={() => setInactivarSnackOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setInactivarSnackOpen(false)} severity="success">
-          Contacto inactivado
-        </Alert>
-      </Snackbar>
+      {snacks.map((s, idx) => (
+        <Snackbar
+          key={s.id}
+          open={s.open}
+          autoHideDuration={3000}
+          onClose={(_, reason) => { if (reason !== 'clickaway') closeSnack(s.id); }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          sx={{ bottom: `${12 + idx * 56}px !important` }}
+        >
+          <Alert onClose={() => closeSnack(s.id)} severity="success">{s.msg}</Alert>
+        </Snackbar>
+      ))}
 
       <Dialog
         open={Boolean(inactivarDialog)}

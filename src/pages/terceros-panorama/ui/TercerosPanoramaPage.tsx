@@ -21,13 +21,13 @@ export function TercerosPanoramaPage() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default', p: 1 }}>
       <PageHeader
         title="Terceros"
         actionLabel="Nuevo tercero"
         onAction={() => navigate('/nuevo')}
       />
-      <Box sx={{ pt: 1, pb: 16, ...slideUp }}>
+      <Box sx={{ flex: 1, minHeight: 0, ...slideUp }}>
         <TercerosTable
           terceros={MOCK_TERCEROS}
           filters={filters}

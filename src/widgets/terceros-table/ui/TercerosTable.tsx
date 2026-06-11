@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Pagination from '@mui/material/Pagination';
@@ -8,7 +8,7 @@ import { TerceroTableRow } from './TerceroTableRow';
 import type { Tercero } from '@/shared/types/tercero';
 import { slideUp } from '@/shared/ui/animations';
 
-const ROWS_PER_PAGE = 10;
+const ROW_HEIGHT = 45; // minHeight 44px + 1px divider
 
 interface Filters {
   rol: string;
@@ -26,6 +26,18 @@ interface TercerosTableProps {
 
 export function TercerosTable({ terceros, filters, onFiltersChange, onRowClick }: TercerosTableProps) {
   const [page, setPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const rowsContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = rowsContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      setRowsPerPage(Math.max(1, Math.floor(el.clientHeight / ROW_HEIGHT)));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const filtered = terceros.filter((t) => {
     if (filters.rol && !t.roles.includes(filters.rol as never)) return false;
@@ -44,11 +56,10 @@ export function TercerosTable({ terceros, filters, onFiltersChange, onRowClick }
     return true;
   });
 
-  // Reset to page 1 when filters change
   useEffect(() => { setPage(1); }, [filters]);
 
-  const totalPages = Math.ceil(filtered.length / ROWS_PER_PAGE);
-  const paginated = filtered.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / rowsPerPage);
+  const paginated = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   return (
     <Paper
@@ -58,33 +69,47 @@ export function TercerosTable({ terceros, filters, onFiltersChange, onRowClick }
         borderRadius: 2,
         border: '1px solid',
         borderColor: 'grey.200',
-        mx: 2,
-        mb: 2,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         ...slideUp,
       }}
     >
       {/* Toolbar */}
-      <Box sx={{ px: 2, pt: 1, pb: 1.5 }}>
+      <Box sx={{ px: 2, pt: 1, pb: 1.5, flexShrink: 0 }}>
         <TercerosToolbar filters={filters} onFiltersChange={onFiltersChange} />
       </Box>
 
-      {/* Header + rows agrupados con 16px de margen lateral y borde */}
+      {/* Header + rows agrupados */}
       <Box
         sx={{
           mx: 2,
           borderRadius: 1,
           overflow: 'hidden',
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <TercerosTableHeader />
-        {paginated.map((tercero, index) => (
-          <TerceroTableRow key={tercero.id} tercero={tercero} onClick={onRowClick} index={index} />
-        ))}
+        {/* Rows fill remaining space — ResizeObserver measures this */}
+        <Box ref={rowsContainerRef} sx={{ flex: 1, overflow: 'hidden' }}>
+          {paginated.map((tercero, index) => (
+            <TerceroTableRow
+              key={tercero.id}
+              tercero={tercero}
+              onClick={onRowClick}
+              index={index}
+              isLast={index === paginated.length - 1}
+            />
+          ))}
+        </Box>
       </Box>
 
       {/* Paginador */}
       {totalPages > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 2, py: 1.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 2, py: 1.5, flexShrink: 0 }}>
           <Pagination
             count={totalPages}
             page={page}

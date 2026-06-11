@@ -24,9 +24,10 @@ interface TerceroTableRowProps {
   tercero: Tercero;
   onClick: (id: string) => void;
   index?: number;
+  isLast?: boolean;
 }
 
-export function TerceroTableRow({ tercero, onClick, index = 0 }: TerceroTableRowProps) {
+export function TerceroTableRow({ tercero, onClick, index = 0, isLast = false }: TerceroTableRowProps) {
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
 
   const isOrg = tercero.tipo === 'Organizacion' || tercero.tipo === 'Juridico';
@@ -134,7 +135,7 @@ export function TerceroTableRow({ tercero, onClick, index = 0 }: TerceroTableRow
         </Box>
       </Box>
 
-      <Divider />
+      {!isLast && <Divider />}
 
       <InactivoPopover
         anchorEl={popoverAnchor}

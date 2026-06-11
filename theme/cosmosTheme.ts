@@ -672,11 +672,11 @@ export const cosmosTheme = createTheme({
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: '#d6d5ff', // components.tooltip.fill (violeta claro)
-          color: '#3a1a98', // components.tooltip.Text (violeta oscuro)
+          backgroundColor: '#101840', // components.tooltip.fill (violeta claro)
+          color: '#FFFFFF', // components.tooltip.Text (violeta oscuro)
         },
         arrow: {
-          color: '#d6d5ff', // Same as tooltip background
+          color: '#101840', // Same as tooltip background
         },
       },
     },

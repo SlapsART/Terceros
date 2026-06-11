@@ -472,6 +472,7 @@ export const MOCK_TERCEROS: Tercero[] = [
     pais: 'Colombia',
     roles: ['Proveedor', 'Cliente'],
     estado: 'Inactivo',
+    motivoInactivacion: 'Finalización de relación comercial por vencimiento de contrato marco.',
     contactos: [
       { id: 'c28-1', nombre: 'Ricardo Pizarro', tipo: 'Representante legal', email: 'r.pizarro@exito.com.co', telefono: '3109876543', codigoPais: '+57', esPrincipal: true, activo: false },
     ],
@@ -489,6 +490,7 @@ export const MOCK_TERCEROS: Tercero[] = [
     pais: 'Colombia',
     roles: ['Proveedor'],
     estado: 'Inactivo',
+    motivoInactivacion: 'Incumplimiento reiterado en términos de entrega y calidad.',
     contactos: [
       { id: 'c29-1', nombre: 'Gloria Mendoza', tipo: 'Comercial', email: 'g.mendoza@delta.co', telefono: '3178901234', codigoPais: '+57', esPrincipal: true, activo: false },
     ],
@@ -506,6 +508,7 @@ export const MOCK_TERCEROS: Tercero[] = [
     pais: 'Colombia',
     roles: ['Empleado', 'Cliente'],
     estado: 'Inactivo',
+    motivoInactivacion: 'Retiro voluntario del tercero de la plataforma.',
     contactos: [
       { id: 'c30-1', tipo: 'Representante legal', email: 's.sanchez@correo.co', telefono: '3204567890', codigoPais: '+57', esPrincipal: true, activo: false },
     ],

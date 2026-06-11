@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
 import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 import {
   IconBuilding,
   IconUser,
@@ -10,7 +10,6 @@ import {
   IconInfoCircle,
   IconRefresh,
 } from '@tabler/icons-react';
-import { InactivoPopover } from '@/features/terceros-filters';
 import type { Tercero } from '@/shared/types/tercero';
 
 const TIPO_LABEL: Record<string, string> = {
@@ -28,7 +27,6 @@ interface TerceroTableRowProps {
 }
 
 export function TerceroTableRow({ tercero, onClick, index = 0, isLast = false }: TerceroTableRowProps) {
-  const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
 
   const isOrg = tercero.tipo === 'Organizacion' || tercero.tipo === 'Juridico';
 
@@ -109,23 +107,23 @@ export function TerceroTableRow({ tercero, onClick, index = 0, isLast = false }:
             />
           )}
           {tercero.estado === 'Inactivo' && (
-            <Chip
-              label={
-                <Box
-                  component="span"
-                  sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPopoverAnchor(e.currentTarget as HTMLElement);
-                  }}
-                >
-                  Inactivo&nbsp;<IconInfoCircle size={12} />
-                </Box>
-              }
-              size="medium"
-              color="default"
-              variant="filled"
-            />
+            <Tooltip
+              title={tercero.motivoInactivacion ?? 'Sin motivo registrado'}
+              placement="top"
+              arrow
+            >
+              <Chip
+                label={
+                  <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                    Inactivo&nbsp;<IconInfoCircle size={12} />
+                  </Box>
+                }
+                size="medium"
+                color="default"
+                variant="filled"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </Tooltip>
           )}
         </Box>
 
@@ -137,11 +135,6 @@ export function TerceroTableRow({ tercero, onClick, index = 0, isLast = false }:
 
       {!isLast && <Divider />}
 
-      <InactivoPopover
-        anchorEl={popoverAnchor}
-        motivo="Se inactivó contacto por finalización de relación comercial con el tercero."
-        onClose={() => setPopoverAnchor(null)}
-      />
     </>
   );
 }

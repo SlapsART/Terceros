@@ -74,6 +74,7 @@ export interface Tercero {
   pais: string;
   roles: TerceroRol[];
   estado: TerceroEstado;
+  motivoInactivacion?: string;
   documentoFuente?: string;
   contactos: Contacto[];
   direcciones: Direccion[];

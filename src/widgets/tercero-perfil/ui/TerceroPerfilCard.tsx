@@ -207,41 +207,45 @@ export function TerceroPerfilCard({
         ))}
       </List>
 
-      <Divider sx={{ width: '100%', my: 1.5 }} />
+      {tercero.estado !== 'En registro' && (
+        <>
+          <Divider sx={{ width: '100%', my: 1.5 }} />
 
-      {activo ? (
-        <Tooltip
-          title={
-            !tieneDireccionPreferida
-              ? 'Sin dirección preferida registrada — agrega una para inactivar el tercero.'
-              : ''
-          }
-          placement="top"
-          disableHoverListener={tieneDireccionPreferida}
-        >
-          <span style={{ width: '100%' }}>
+          {activo ? (
+            <Tooltip
+              title={
+                !tieneDireccionPreferida
+                  ? 'Sin dirección preferida registrada — agrega una para inactivar el tercero.'
+                  : ''
+              }
+              placement="top"
+              disableHoverListener={tieneDireccionPreferida}
+            >
+              <span style={{ width: '100%' }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  onClick={onInactivar}
+                  disabled={!tieneDireccionPreferida}
+                  sx={{ borderColor: 'error.main', color: 'error.main', '&:hover': { borderColor: 'error.dark', bgcolor: 'error.50' } }}
+                >
+                  Inactivar tercero
+                </Button>
+              </span>
+            </Tooltip>
+          ) : (
             <Button
               variant="outlined"
               size="small"
               fullWidth
-              onClick={onInactivar}
-              disabled={!tieneDireccionPreferida}
-              sx={{ borderColor: 'error.main', color: 'error.main', '&:hover': { borderColor: 'error.dark', bgcolor: 'error.50' } }}
+              onClick={onActivar}
+              sx={{ borderColor: 'primary.main', color: 'primary.main' }}
             >
-              Inactivar tercero
+              Activar tercero
             </Button>
-          </span>
-        </Tooltip>
-      ) : (
-        <Button
-          variant="outlined"
-          size="small"
-          fullWidth
-          onClick={onActivar}
-          sx={{ borderColor: 'primary.main', color: 'primary.main' }}
-        >
-          Activar tercero
-        </Button>
+          )}
+        </>
       )}
     </Paper>
   );

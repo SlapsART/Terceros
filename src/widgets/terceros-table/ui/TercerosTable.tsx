@@ -4,6 +4,7 @@ import { TercerosToolbar } from './TercerosToolbar';
 import { TercerosTableHeader } from './TercerosTableHeader';
 import { TerceroTableRow } from './TerceroTableRow';
 import type { Tercero } from '@/shared/types/tercero';
+import { slideUp } from '@/shared/ui/animations';
 
 interface Filters {
   rol: string;
@@ -48,6 +49,7 @@ export function TercerosTable({ terceros, filters, onFiltersChange, onRowClick }
         overflow: 'hidden',
         mx: 2,
         mb: 2,
+        ...slideUp,
       }}
     >
       {/* Toolbar: 8px top padding, 12px bottom gap to match Figma */}
@@ -61,8 +63,8 @@ export function TercerosTable({ terceros, filters, onFiltersChange, onRowClick }
       </Box>
 
       <Box>
-        {filtered.map((tercero) => (
-          <TerceroTableRow key={tercero.id} tercero={tercero} onClick={onRowClick} />
+        {filtered.map((tercero, index) => (
+          <TerceroTableRow key={tercero.id} tercero={tercero} onClick={onRowClick} index={index} />
         ))}
       </Box>
     </Paper>

@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import { PageHeader } from '@/widgets/page-header';
 import { FloatingBar } from '@/widgets/floating-bar';
-import { InformacionTerceroCard } from '@/widgets/informacion-tercero-card';
+import { InformacionTerceroCard, type DuplicadoInfo } from '@/widgets/informacion-tercero-card';
 import { ContactosCard } from '@/widgets/contactos-card';
 import { DireccionesCard } from '@/widgets/direcciones-card';
 import { AccionesNuevasCard } from '@/widgets/acciones-nuevas-card';
 import { OcrTercerosSidebar } from '@/widgets/ocr-terceros-sidebar';
 import type { OcrTerceroItem } from '@/widgets/ocr-terceros-sidebar';
+import { MOCK_TERCEROS } from '@/shared/mocks/terceros';
 import type { TerceroTipo, TerceroRol, Contacto, Direccion } from '@/shared/types/tercero';
 
 const MOCK_ITEMS: OcrTerceroItem[] = [
@@ -45,6 +46,18 @@ export function OcrBatchResultPage() {
   const [contactos, setContactos] = useState<Contacto[]>([]);
   const [direcciones, setDirecciones] = useState<Direccion[]>([]);
   const [snack, setSnack] = useState<string | null>(null);
+
+  const detectedDuplicate = useMemo<DuplicadoInfo | null>(() => {
+    if (!identificacionNumero) return null;
+    const match = MOCK_TERCEROS.find(
+      (t) =>
+        t.identificacionTipo.toLowerCase() === identificacionTipo.toLowerCase() &&
+        t.identificacionNumero === identificacionNumero,
+    );
+    return match
+      ? { identificacionTipo: match.identificacionTipo, identificacionNumero: match.identificacionNumero, pais: match.pais }
+      : null;
+  }, [identificacionTipo, identificacionNumero]);
 
   const handleCrear = () => {
     setSnack(`"${nombre}" creado exitosamente`);
@@ -81,6 +94,12 @@ export function OcrBatchResultPage() {
             gap: 2,
             width: 852,
             maxWidth: '100%',
+            animation: 'uiSlideUp 0.22s ease-out both',
+            animationDelay: '60ms',
+            '@keyframes uiSlideUp': {
+              from: { opacity: 0, transform: 'translateY(10px)' },
+              to:   { opacity: 1, transform: 'translateY(0)' },
+            },
           }}
         >
           {/* Left sidebar — 281px */}
@@ -102,6 +121,8 @@ export function OcrBatchResultPage() {
               pais={pais}
               roles={roles}
               documentoFuente={MOCK_OCR_DATA.documentoFuente}
+              duplicado={detectedDuplicate}
+              duplicadoMode="error"
               onNombreChange={setNombre}
               onTipoChange={setTipo}
               onIdentificacionTipoChange={setIdentificacionTipo}
@@ -122,6 +143,7 @@ export function OcrBatchResultPage() {
         onGuardar={handleCrear}
         guardarLabel="Crear tercero"
         showInactivar={false}
+        guardarDisabled={!!detectedDuplicate}
       />
 
       <Snackbar

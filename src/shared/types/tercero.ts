@@ -61,6 +61,7 @@ export interface PerfilTributario {
   esAgenteRetenedorIVA: boolean;
   esAutorretenedorRenta: boolean;
   esExentoRetefuente: boolean;
+  vigenciasAtributos?: Record<string, { vigenciaInicial: string; vigenciaFinal: string }>;
 }
 
 export interface Tercero {

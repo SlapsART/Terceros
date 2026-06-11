@@ -31,8 +31,12 @@ const ASISTENTE_SX = {
   position: 'fixed',
   bottom: '12px',
   left: '50%',
-  transform: 'translateX(-50%)',
   width: 680,
+  animation: 'asistenteIn 0.32s cubic-bezier(0.16,1,0.3,1) both',
+  '@keyframes asistenteIn': {
+    from: { opacity: 0, transform: 'translateX(-50%) translateY(12px)' },
+    to:   { opacity: 1, transform: 'translateX(-50%) translateY(0)' },
+  },
   bgcolor: 'grey.100',
   border: '1px solid rgba(47,67,208,0.12)',
   borderRadius: '8px',

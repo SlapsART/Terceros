@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import { fadeIn } from '@/shared/ui/animations';
 
 export function TercerosTableHeader() {
   return (
@@ -11,6 +12,8 @@ export function TercerosTableHeader() {
         px: 3,
         py: 0.5,
         bgcolor: 'grey.100',
+        ...fadeIn,
+        animationDelay: '80ms',
       }}
     >
       {/* Icon column placeholder — matches row icon width */}
@@ -22,7 +25,7 @@ export function TercerosTableHeader() {
         </Typography>
       </Box>
 
-      <Box sx={{ width: 240, flexShrink: 0 }}>
+      <Box sx={{ width: 320, flexShrink: 0 }}>
         <Typography variant="body2" color="text.secondary">
           Rol
         </Typography>

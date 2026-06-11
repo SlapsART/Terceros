@@ -23,9 +23,10 @@ const TIPO_LABEL: Record<string, string> = {
 interface TerceroTableRowProps {
   tercero: Tercero;
   onClick: (id: string) => void;
+  index?: number;
 }
 
-export function TerceroTableRow({ tercero, onClick }: TerceroTableRowProps) {
+export function TerceroTableRow({ tercero, onClick, index = 0 }: TerceroTableRowProps) {
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
 
   const isOrg = tercero.tipo === 'Organizacion' || tercero.tipo === 'Juridico';
@@ -40,8 +41,15 @@ export function TerceroTableRow({ tercero, onClick }: TerceroTableRowProps) {
           gap: 1.5,
           px: 3,
           cursor: 'pointer',
+          transition: 'background-color 0.15s ease',
           '&:hover': { bgcolor: 'action.hover' },
           minHeight: 44,
+          animation: 'uiSlideUp 0.22s ease-out both',
+          animationDelay: `${Math.min(index, 8) * 35}ms`,
+          '@keyframes uiSlideUp': {
+            from: { opacity: 0, transform: 'translateY(10px)' },
+            to:   { opacity: 1, transform: 'translateY(0)' },
+          },
         }}
       >
         {/* Type icon — color set on parent Box so SVG inherits currentColor */}
@@ -69,7 +77,7 @@ export function TerceroTableRow({ tercero, onClick }: TerceroTableRowProps) {
         </Box>
 
         {/* Rol chips */}
-        <Box sx={{ width: 240, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
+        <Box sx={{ width: 320, display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'nowrap', flexShrink: 0 }}>
           {tercero.roles.map((rol) => (
             <Chip key={rol} label={rol} size="small" variant="filled" />
           ))}

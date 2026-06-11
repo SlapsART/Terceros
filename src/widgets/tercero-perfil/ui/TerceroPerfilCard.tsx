@@ -12,8 +12,9 @@ import ListItemText from '@mui/material/ListItemText';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
-import { IconEdit, IconUser, IconMapPin, IconBriefcase, IconPaperclip } from '@tabler/icons-react';
+import { IconEdit, IconHistory, IconUser, IconMapPin, IconBriefcase, IconPaperclip } from '@tabler/icons-react';
 import type { Tercero } from '@/shared/types/tercero';
+import { slideUp } from '@/shared/ui/animations';
 
 type TabValue = 'contacto' | 'tributario' | 'bancario' | 'documentos';
 
@@ -29,6 +30,7 @@ interface TerceroPerfilCardProps {
   activeTab: TabValue;
   onTabChange: (tab: TabValue) => void;
   onEdit: () => void;
+  onHistorial?: () => void;
   onInactivar: () => void;
   onActivar: () => void;
   activo: boolean;
@@ -41,6 +43,7 @@ export function TerceroPerfilCard({
   activeTab,
   onTabChange,
   onEdit,
+  onHistorial,
   onInactivar,
   onActivar,
   activo,
@@ -61,20 +64,24 @@ export function TerceroPerfilCard({
         position: 'relative',
         minWidth: 320,
         maxWidth: 340,
+        ...slideUp,
       }}
     >
-      <IconButton
-        size="small"
-        onClick={onEdit}
-        sx={{ position: 'absolute', top: 16, right: 16 }}
-      >
-        <Box sx={{ color: 'primary.main', display: 'flex' }}><IconEdit size={16} /></Box>
-      </IconButton>
+      <Box sx={{ position: 'absolute', top: '16px', right: '16px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+        <IconButton size="small" onClick={onEdit} sx={{ p: '3px', borderRadius: '50%' }}>
+          <Box sx={{ color: 'primary.main', display: 'flex' }}><IconEdit size={16} /></Box>
+        </IconButton>
+        {onHistorial && (
+          <IconButton size="small" onClick={onHistorial} sx={{ p: '3px', borderRadius: '50%' }}>
+            <Box sx={{ color: 'text.secondary', display: 'flex' }}><IconHistory size={16} /></Box>
+          </IconButton>
+        )}
+      </Box>
 
       <Box
         sx={{
-          width: 64,
-          height: 64,
+          width: 80,
+          height: 80,
           mb: 2,
           border: '2px dashed',
           borderColor: activo ? 'primary.200' : 'grey.300',
@@ -86,8 +93,8 @@ export function TerceroPerfilCard({
       >
         <Avatar
           sx={{
-            width: 48,
-            height: 48,
+            width: 60,
+            height: 60,
             bgcolor: activo ? 'primary.main' : 'grey.400',
           }}
         >

@@ -2,6 +2,7 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Link from '@mui/material/Link';
 import { IconFileText } from '@tabler/icons-react';
+import { slideUp } from '@/shared/ui/animations';
 
 export type OcrTerceroStatus = 'ready' | 'error';
 
@@ -29,6 +30,7 @@ export function OcrTercerosSidebar({ items, selectedId, onSelect }: OcrTercerosS
         gap: 0.5,
         height: '100%',
         overflow: 'hidden',
+        ...slideUp,
       }}
     >
       {/* Header */}

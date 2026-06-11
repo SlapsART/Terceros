@@ -12,7 +12,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
-import { IconEdit, IconUser, IconMapPin, IconBriefcase, IconPaperclip } from '@tabler/icons-react';
+import { IconEdit, IconHistory, IconUser, IconMapPin, IconBriefcase, IconPaperclip } from '@tabler/icons-react';
 import type { Tercero } from '@/shared/types/tercero';
 import { slideUp } from '@/shared/ui/animations';
 
@@ -30,6 +30,7 @@ interface TerceroPerfilCardProps {
   activeTab: TabValue;
   onTabChange: (tab: TabValue) => void;
   onEdit: () => void;
+  onHistorial?: () => void;
   onInactivar: () => void;
   onActivar: () => void;
   activo: boolean;
@@ -42,6 +43,7 @@ export function TerceroPerfilCard({
   activeTab,
   onTabChange,
   onEdit,
+  onHistorial,
   onInactivar,
   onActivar,
   activo,
@@ -65,13 +67,16 @@ export function TerceroPerfilCard({
         ...slideUp,
       }}
     >
-      <IconButton
-        size="small"
-        onClick={onEdit}
-        sx={{ position: 'absolute', top: 16, right: 16 }}
-      >
-        <Box sx={{ color: 'primary.main', display: 'flex' }}><IconEdit size={16} /></Box>
-      </IconButton>
+      <Box sx={{ position: 'absolute', top: '16px', right: '16px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+        <IconButton size="small" onClick={onEdit} sx={{ p: '3px', borderRadius: '50%' }}>
+          <Box sx={{ color: 'primary.main', display: 'flex' }}><IconEdit size={16} /></Box>
+        </IconButton>
+        {onHistorial && (
+          <IconButton size="small" onClick={onHistorial} sx={{ p: '3px', borderRadius: '50%' }}>
+            <Box sx={{ color: 'text.secondary', display: 'flex' }}><IconHistory size={16} /></Box>
+          </IconButton>
+        )}
+      </Box>
 
       <Box
         sx={{

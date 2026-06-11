@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -10,9 +11,10 @@ interface PageHeaderProps {
   onBack?: () => void;
   actionLabel?: string;
   onAction?: () => void;
+  rightContent?: ReactNode;
 }
 
-export function PageHeader({ title, onBack, actionLabel, onAction }: PageHeaderProps) {
+export function PageHeader({ title, onBack, actionLabel, onAction, rightContent }: PageHeaderProps) {
   return (
     <Box
       sx={{
@@ -41,6 +43,7 @@ export function PageHeader({ title, onBack, actionLabel, onAction }: PageHeaderP
         </Typography>
       </Box>
 
+      {rightContent}
       {actionLabel && onAction && (
         <Button
           variant="contained"

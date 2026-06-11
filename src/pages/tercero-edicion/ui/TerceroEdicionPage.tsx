@@ -10,9 +10,11 @@ import { ContactosCard } from '@/widgets/contactos-card';
 import { DireccionesCard } from '@/widgets/direcciones-card';
 import { InformacionTerceroEditCard } from '@/widgets/informacion-tercero-card';
 import { PerfilTributarioCard } from '@/widgets/perfil-tributario-card';
+import { HistorialDrawer } from '@/widgets/historial-drawer';
 import { InactivarTerceroDialog } from '@/features/inactivar-tercero';
 import { SalirSinGuardarDialog } from '@/features/salir-sin-guardar';
 import { MOCK_TERCEROS } from '@/shared/mocks/terceros';
+import { MOCK_HISTORIAL } from '@/shared/mocks/historial';
 import { slideUp, fadeIn } from '@/shared/ui/animations';
 import type {
   Tercero,
@@ -67,6 +69,7 @@ export function TerceroEdicionPage() {
   // Dirty state: any right-panel widget in edit mode sets this to true
   const [isDirty, setIsDirty] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [historialOpen, setHistorialOpen] = useState(false);
 
   const normalizedTipo: TerceroTipo =
     tercero.tipo === 'Natural' || tercero.tipo === 'Juridico' ? 'Persona' : tercero.tipo;
@@ -76,6 +79,13 @@ export function TerceroEdicionPage() {
   const [identificacionTipo, setIdentificacionTipo] = useState(tercero.identificacionTipo);
   const [identificacionNumero, setIdentificacionNumero] = useState(tercero.identificacionNumero);
   const [pais, setPais] = useState(tercero.pais);
+  const formatDireccion = (d: { viaPrincipal: string; num1: string; num2: string; complemento?: string }) =>
+    `${d.viaPrincipal} #${d.num1}-${d.num2}${d.complemento ? ` ${d.complemento}` : ''}`;
+
+  const fiscalDir = tercero.direcciones.find((d) => d.tipo === 'Fiscal');
+  const [direccionFiscal, setDireccionFiscal] = useState(
+    fiscalDir ? formatDireccion(fiscalDir) : ''
+  );
   const [roles, setRoles] = useState<TerceroRol[]>(tercero.roles);
   const [contactos, setContactos] = useState<Contacto[]>(tercero.contactos);
   const [direcciones, setDirecciones] = useState<Direccion[]>(tercero.direcciones);
@@ -139,7 +149,10 @@ export function TerceroEdicionPage() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <PageHeader title="Terceros" onBack={handleBack} />
+      <PageHeader
+        title="Terceros"
+        onBack={handleBack}
+      />
 
       <Box
         sx={{
@@ -188,6 +201,7 @@ export function TerceroEdicionPage() {
                 activeTab={activeTab}
                 onTabChange={(tab) => requestNavigation({ kind: 'tab', tab })}
                 onEdit={() => setEditingInfo(true)}
+                onHistorial={() => setHistorialOpen(true)}
                 onInactivar={() => setInactivarDialogOpen(true)}
                 onActivar={handleActivar}
                 activo={activo}
@@ -231,9 +245,17 @@ export function TerceroEdicionPage() {
                 <PerfilTributarioCard
                   nombreRazonSocial={nombre}
                   identificacionTipo={identificacionTipo}
+                  identificacionNumero={identificacionNumero}
                   nit={tercero.nit}
+                  pais={pais}
+                  direccion={direccionFiscal}
+                  direccionesOpciones={direcciones.map(formatDireccion)}
                   perfil={perfilTributario}
                   onPerfilChange={setPerfilTributario}
+                  onIdentificacionTipoChange={setIdentificacionTipo}
+                  onIdentificacionNumeroChange={setIdentificacionNumero}
+                  onPaisChange={setPais}
+                  onDireccionChange={setDireccionFiscal}
                   onDirtyChange={setIsDirty}
                 />
               </Box>
@@ -252,6 +274,12 @@ export function TerceroEdicionPage() {
           )}
         </Box>
       </Box>
+
+      <HistorialDrawer
+        open={historialOpen}
+        eventos={MOCK_HISTORIAL}
+        onClose={() => setHistorialOpen(false)}
+      />
 
       <InactivarTerceroDialog
         open={inactivarDialogOpen}
